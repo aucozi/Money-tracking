@@ -17,7 +17,12 @@ jest.mock('@/platform/secrets', () => ({
 
 const ACCESS = 'https://demo:demo@beta-bridge.simplefin.org/simplefin';
 const reply = (status: number, body: unknown) =>
-  ({ ok: status >= 200 && status < 300, status, text: async () => String(body), json: async () => (typeof body === 'string' ? JSON.parse(body) : body) }) as Response;
+  ({
+    ok: status >= 200 && status < 300,
+    status,
+    text: async () => String(body),
+    json: async () => (typeof body === 'string' ? JSON.parse(body) : body),
+  }) as Response;
 
 /** A stand-in bank that answers like the SimpleFIN demo server. */
 function fakeBank(accounts: unknown = demo) {
@@ -68,7 +73,11 @@ describe('client', () => {
   });
 
   it('turns HTTP failures into plain explanations', async () => {
-    for (const [status, message] of [[403, /Access may have been revoked/], [402, /subscription/], [503, /error 503/]] as const) {
+    for (const [status, message] of [
+      [403, /Access may have been revoked/],
+      [402, /subscription/],
+      [503, /error 503/],
+    ] as const) {
       global.fetch = jest.fn(async () => reply(status, '')) as unknown as typeof fetch;
       await expect(fetchSnapshot(ACCESS, {}, '2026-11-10')).rejects.toThrow(message);
     }

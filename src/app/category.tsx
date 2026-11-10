@@ -26,7 +26,9 @@ export default function CategoryScreen() {
   const [color, setColor] = useState(existing?.color ?? CATEGORY_COLORS[data.categories.length % CATEGORY_COLORS.length]);
   const [archived, setArchived] = useState(existing?.archived ?? false);
   const [attempted, setAttempted] = useState(false);
-  const used = existing ? data.transactions.filter((tx) => tx.categoryId === existing.id || tx.splits?.some((split) => split.categoryId === existing.id)).length : 0;
+  const used = existing
+    ? data.transactions.filter((tx) => tx.categoryId === existing.id || tx.splits?.some((split) => split.categoryId === existing.id)).length
+    : 0;
   const nameError = name.trim() ? null : 'Give the category a name.';
 
   const save = () => {
@@ -67,7 +69,8 @@ export default function CategoryScreen() {
     <ModalScreen
       title={existing ? 'Edit category' : 'New category'}
       testID="category-screen"
-      footer={<FormActions onSave={save} onDelete={existing ? remove : undefined} saveLabel={existing ? 'Save' : 'Add category'} />}>
+      footer={<FormActions onSave={save} onDelete={existing ? remove : undefined} saveLabel={existing ? 'Save' : 'Add category'} />}
+    >
       <Row align="flex-start">
         <View style={{ width: 84 }}>
           <Field label="Icon" value={icon} onChangeText={setIcon} maxLength={4} testID="category-icon" />
@@ -89,7 +92,9 @@ export default function CategoryScreen() {
         label="Group"
         value={groupId}
         onChange={setGroupId}
-        options={[...data.categoryGroups].sort((a, b) => a.sort - b.sort).map((group) => ({ value: group.id, label: group.name, hint: group.kind === 'income' ? 'Income' : undefined }))}
+        options={[...data.categoryGroups]
+          .sort((a, b) => a.sort - b.sort)
+          .map((group) => ({ value: group.id, label: group.name, hint: group.kind === 'income' ? 'Income' : undefined }))}
         testID="category-group"
       />
       <T variant="label" tone="muted">

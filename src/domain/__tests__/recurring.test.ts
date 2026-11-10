@@ -1,14 +1,5 @@
 import { account, recurring, tx } from '@/test/factories';
-import {
-  detectRecurring,
-  linkRecurring,
-  matchWindow,
-  monthlyEquivalent,
-  nextOccurrence,
-  occurrencesBetween,
-  scheduleBetween,
-  upcoming,
-} from '../recurring';
+import { detectRecurring, linkRecurring, matchWindow, monthlyEquivalent, nextOccurrence, occurrencesBetween, scheduleBetween, upcoming } from '../recurring';
 
 describe('occurrencesBetween', () => {
   it('lists monthly due dates', () => {
@@ -18,23 +9,33 @@ describe('occurrencesBetween', () => {
 
   it('keeps a month-end bill on the last day without drifting', () => {
     const bill = recurring({ frequency: 'monthly', anchorDate: '2026-01-31' });
-    expect(occurrencesBetween(bill, '2026-01-01', '2026-05-31')).toEqual([
-      '2026-01-31', '2026-02-28', '2026-03-31', '2026-04-30', '2026-05-31',
-    ]);
+    expect(occurrencesBetween(bill, '2026-01-01', '2026-05-31')).toEqual(['2026-01-31', '2026-02-28', '2026-03-31', '2026-04-30', '2026-05-31']);
   });
 
   it('handles weekly, fortnightly, quarterly and yearly schedules', () => {
     expect(occurrencesBetween(recurring({ frequency: 'weekly', anchorDate: '2026-03-02' }), '2026-03-01', '2026-03-31')).toEqual([
-      '2026-03-02', '2026-03-09', '2026-03-16', '2026-03-23', '2026-03-30',
+      '2026-03-02',
+      '2026-03-09',
+      '2026-03-16',
+      '2026-03-23',
+      '2026-03-30',
     ]);
     expect(occurrencesBetween(recurring({ frequency: 'biweekly', anchorDate: '2026-03-02' }), '2026-03-10', '2026-04-15')).toEqual([
-      '2026-03-16', '2026-03-30', '2026-04-13',
+      '2026-03-16',
+      '2026-03-30',
+      '2026-04-13',
     ]);
     expect(occurrencesBetween(recurring({ frequency: 'quarterly', anchorDate: '2026-01-18' }), '2026-01-01', '2026-12-31')).toEqual([
-      '2026-01-18', '2026-04-18', '2026-07-18', '2026-10-18',
+      '2026-01-18',
+      '2026-04-18',
+      '2026-07-18',
+      '2026-10-18',
     ]);
     expect(occurrencesBetween(recurring({ frequency: 'yearly', anchorDate: '2024-02-29' }), '2025-01-01', '2028-12-31')).toEqual([
-      '2025-02-28', '2026-02-28', '2027-02-28', '2028-02-29',
+      '2025-02-28',
+      '2026-02-28',
+      '2027-02-28',
+      '2028-02-29',
     ]);
   });
 
@@ -179,8 +180,15 @@ describe('detectRecurring', () => {
     expect(suggestion.seen).toBe(4);
     expect(suggestion.lastDate).toBe('2026-04-03');
     expect(suggestion.recurring).toMatchObject({
-      name: 'PulseGym', amount: -3490, currency: 'EUR', frequency: 'monthly', anchorDate: '2026-05-03',
-      categoryId: 'health', accountId: 'acc', status: 'active', matchText: 'PulseGym',
+      name: 'PulseGym',
+      amount: -3490,
+      currency: 'EUR',
+      frequency: 'monthly',
+      anchorDate: '2026-05-03',
+      categoryId: 'health',
+      accountId: 'acc',
+      status: 'active',
+      matchText: 'PulseGym',
     });
   });
 
@@ -209,16 +217,32 @@ describe('detectRecurring', () => {
   });
 
   it('does not mistake a weekly habit with changing prices for a bill', () => {
-    const fuel = ['2026-03-02', '2026-03-09', '2026-03-16', '2026-03-23'].map((date, i) => tx({ accountId: 'acc', payee: 'Volt Fuel', amount: -3000 - i * 700, date }));
+    const fuel = ['2026-03-02', '2026-03-09', '2026-03-16', '2026-03-23'].map((date, i) =>
+      tx({ accountId: 'acc', payee: 'Volt Fuel', amount: -3000 - i * 700, date }),
+    );
     expect(detectRecurring(fuel, [], accounts, '2026-03-25')).toEqual([]);
   });
 
   it('does not suggest things already tracked, already linked, stopped, or transfers', () => {
     const history = monthly('PulseGym', [-3490, -3490, -3490, -3490]);
     expect(detectRecurring(history, [recurring({ matchText: 'pulsegym' })], accounts, '2026-04-20')).toEqual([]);
-    expect(detectRecurring(history.map((item) => ({ ...item, recurringId: 'x' })), [], accounts, '2026-04-20')).toEqual([]);
+    expect(
+      detectRecurring(
+        history.map((item) => ({ ...item, recurringId: 'x' })),
+        [],
+        accounts,
+        '2026-04-20',
+      ),
+    ).toEqual([]);
     expect(detectRecurring(history, [], accounts, '2026-09-01')).toEqual([]);
-    expect(detectRecurring(history.map((item) => ({ ...item, kind: 'transfer' as const })), [], accounts, '2026-04-20')).toEqual([]);
+    expect(
+      detectRecurring(
+        history.map((item) => ({ ...item, kind: 'transfer' as const })),
+        [],
+        accounts,
+        '2026-04-20',
+      ),
+    ).toEqual([]);
   });
 
   it('lists the biggest commitments first', () => {

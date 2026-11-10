@@ -1,25 +1,15 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import {
-  addDays,
-  addMonthsToKey,
-  dayOfWeek,
-  formatDate,
-  formatMonth,
-  monthKey,
-  monthLength,
-  monthStart,
-  todayISO,
-} from '@/domain/dates';
+import { addDays, addMonthsToKey, dayOfWeek, formatDate, formatMonth, monthKey, monthLength, monthStart, todayISO } from '@/domain/dates';
 import { COMMON_CURRENCIES, formatMoney, parseAmount, toInputString } from '@/domain/money';
 import type { Account, Category, CategoryKind, ISODate } from '@/domain/types';
 import { useBalances, useData } from '@/store/hooks';
 
+import { Icon } from './icon';
 import { Sheet } from './overlays';
-import { Button, Chip, Field, Glyph, IconButton, ListItem, PickerField, Row, T } from './primitives';
-import { radius, space, useTheme } from './theme';
+import { Button, Card, Chip, Field, Glyph, IconButton, ListItem, PickerField, Row, T } from './primitives';
+import { space, useTheme } from './theme';
 
 export interface Option<V extends string> {
   value: V;
@@ -51,7 +41,7 @@ export function OptionField<V extends string>({
     <>
       <PickerField label={label} value={current?.label} placeholder={placeholder} leading={current?.leading} onPress={() => setOpen(true)} testID={testID} />
       <Sheet visible={open} onClose={() => setOpen(false)} title={label}>
-        <View style={[styles.list, { backgroundColor: c.surface, borderColor: c.border }]}>
+        <Card padded={false}>
           {options.map((option) => (
             <ListItem
               key={option.value}
@@ -59,14 +49,14 @@ export function OptionField<V extends string>({
               subtitle={option.hint}
               leading={option.leading}
               selected={option.value === value}
-              trailing={option.value === value ? <Ionicons name="checkmark" size={20} color={c.accent} /> : undefined}
+              trailing={option.value === value ? <Icon name="checkmark" size={18} color={c.accent} /> : undefined}
               onPress={() => {
                 onChange(option.value);
                 setOpen(false);
               }}
             />
           ))}
-        </View>
+        </Card>
       </Sheet>
     </>
   );
@@ -136,14 +126,9 @@ export function CategorySheet({
   const groups = [...data.categoryGroups].sort((a, b) => a.sort - b.sort).filter((group) => !kind || group.kind === kind);
   return (
     <Sheet visible={visible} onClose={onClose} title={title} testID="category-sheet">
-      <View style={[styles.list, { backgroundColor: c.surface, borderColor: c.border }]}>
-        <ListItem
-          title="Uncategorized"
-          leading={<Glyph icon="❔" />}
-          selected={selected === null}
-          onPress={() => onPick(null)}
-        />
-      </View>
+      <Card padded={false}>
+        <ListItem title="Uncategorized" leading={<Glyph icon="❔" />} selected={selected === null} onPress={() => onPick(null)} />
+      </Card>
       {groups.map((group) => {
         const categories = data.categories
           .filter((category) => category.groupId === group.id && (!category.archived || category.id === selected))
@@ -154,19 +139,19 @@ export function CategorySheet({
             <T variant="caption" tone="faint">
               {group.name.toUpperCase()}
             </T>
-            <View style={[styles.list, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <Card padded={false}>
               {categories.map((category: Category) => (
                 <ListItem
                   key={category.id}
                   title={category.name}
                   leading={<Glyph icon={category.icon} color={category.color} />}
                   selected={category.id === selected}
-                  trailing={category.id === selected ? <Ionicons name="checkmark" size={20} color={c.accent} /> : undefined}
+                  trailing={category.id === selected ? <Icon name="checkmark" size={18} color={c.accent} /> : undefined}
                   onPress={() => onPick(category.id)}
                   testID={`pick-${category.id}`}
                 />
               ))}
-            </View>
+            </Card>
           </View>
         );
       })}
@@ -223,10 +208,7 @@ export function Calendar({ value, onChange }: { value: ISODate; onChange: (date:
   const today = todayISO();
   const first = monthStart(month);
   const offset = (dayOfWeek(first) + 6) % 7; // Monday-first
-  const cells: (ISODate | null)[] = [
-    ...new Array<null>(offset).fill(null),
-    ...Array.from({ length: monthLength(month) }, (_, index) => addDays(first, index)),
-  ];
+  const cells: (ISODate | null)[] = [...new Array<null>(offset).fill(null), ...Array.from({ length: monthLength(month) }, (_, index) => addDays(first, index))];
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
@@ -257,8 +239,11 @@ export function Calendar({ value, onChange }: { value: ISODate; onChange: (date:
                 accessibilityLabel={formatDate(date, 'long')}
                 accessibilityState={{ selected }}
                 onPress={() => onChange(date)}
-                style={styles.day}>
-                <View style={[styles.dayInner, selected && { backgroundColor: c.accent }, !selected && date === today && { borderColor: c.accent, borderWidth: 1 }]}>
+                style={styles.day}
+              >
+                <View
+                  style={[styles.dayInner, selected && { backgroundColor: c.accent }, !selected && date === today && { borderColor: c.accent, borderWidth: 1 }]}
+                >
                   <T numeric variant="label" style={{ color: selected ? c.onAccent : c.text }}>
                     {Number(date.slice(8, 10))}
                   </T>
@@ -397,7 +382,6 @@ export function FormActions({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  list: { borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   group: { gap: space.sm },
   calendar: { gap: space.sm },
   day: { flex: 1, alignItems: 'center', paddingVertical: 3 },

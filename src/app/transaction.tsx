@@ -46,9 +46,7 @@ export default function TransactionScreen() {
     (lastUsed && openAccounts.some((account) => account.id === lastUsed) ? lastUsed : undefined) ??
     openAccounts[0]?.id;
 
-  const [type, setType] = useState<EntryType>(
-    existing ? (existing.kind === 'transfer' ? 'transfer' : existing.amount > 0 ? 'income' : 'expense') : 'expense',
-  );
+  const [type, setType] = useState<EntryType>(existing ? (existing.kind === 'transfer' ? 'transfer' : existing.amount > 0 ? 'income' : 'expense') : 'expense');
   const [amount, setAmount] = useState<number | null>(existing ? Math.abs(existing.amount) : null);
   const [payee, setPayee] = useState(existing?.payee ?? '');
   const [accountId, setAccountId] = useState<string | undefined>(defaultAccount);
@@ -59,14 +57,10 @@ export default function TransactionScreen() {
   const [notes, setNotes] = useState(existing?.notes ?? '');
   const [tags, setTags] = useState(existing?.tags.join(', ') ?? '');
   const [parts, setParts] = useState<PartDraft[] | null>(
-    existing?.splits?.length
-      ? existing.splits.map((split) => ({ id: split.id, amount: Math.abs(split.amount), categoryId: split.categoryId }))
-      : null,
+    existing?.splits?.length ? existing.splits.map((split) => ({ id: split.id, amount: Math.abs(split.amount), categoryId: split.categoryId })) : null,
   );
   const [spread, setSpread] = useState(String(existing?.spreadMonths ?? 1));
-  const [originalText, setOriginalText] = useState(
-    existing?.original ? toInputString(existing.original.amount, existing.original.currency) : '',
-  );
+  const [originalText, setOriginalText] = useState(existing?.original ? toInputString(existing.original.amount, existing.original.currency) : '');
   const [originalCurrency, setOriginalCurrency] = useState(existing?.original?.currency ?? '');
   const [recurringId, setRecurringId] = useState(existing?.recurringId);
   const [makeRule, setMakeRule] = useState(false);
@@ -94,9 +88,7 @@ export default function TransactionScreen() {
       : null;
   const splitLeft = parts && amount !== null ? amount - parts.reduce((total, part) => total + (part.amount ?? 0), 0) : 0;
 
-  const ruleExists = data.rules.some(
-    (rule) => rule.conditions.payeeText && normalizePayee(rule.conditions.payeeText) === normalizePayee(payee),
-  );
+  const ruleExists = data.rules.some((rule) => rule.conditions.payeeText && normalizePayee(rule.conditions.payeeText) === normalizePayee(payee));
   const canMakeRule = !isTransfer && !parts && Boolean(category) && payee.trim().length > 1 && !ruleExists;
 
   const errors = {
@@ -193,7 +185,8 @@ export default function TransactionScreen() {
     <ModalScreen
       title={existing ? 'Edit transaction' : 'New transaction'}
       testID="transaction-screen"
-      footer={<FormActions onSave={save} onDelete={existing ? remove : undefined} saveLabel={existing ? 'Save' : 'Add'} />}>
+      footer={<FormActions onSave={save} onDelete={existing ? remove : undefined} saveLabel={existing ? 'Save' : 'Add'} />}
+    >
       <Segmented
         value={type}
         onChange={(next) => {
@@ -349,7 +342,12 @@ export default function TransactionScreen() {
                     </View>
                     {parts.length > 2 ? (
                       <View style={styles.remove}>
-                        <IconButton icon="close-circle-outline" label={`Remove part ${index + 1}`} tone="faint" onPress={() => setParts(parts.filter((item) => item.id !== part.id))} />
+                        <IconButton
+                          icon="close-circle-outline"
+                          label={`Remove part ${index + 1}`}
+                          tone="faint"
+                          onPress={() => setParts(parts.filter((item) => item.id !== part.id))}
+                        />
                       </View>
                     ) : null}
                   </Row>
@@ -366,7 +364,12 @@ export default function TransactionScreen() {
                           ? `${formatMoney(-splitLeft, currency)} too much.`
                           : (splitError ?? '')}
                   </T>
-                  <Button label="Add part" kind="secondary" small onPress={() => setParts([...parts, { id: newId('split_'), amount: null, categoryId: null }])} />
+                  <Button
+                    label="Add part"
+                    kind="secondary"
+                    small
+                    onPress={() => setParts([...parts, { id: newId('split_'), amount: null, categoryId: null }])}
+                  />
                 </Row>
               ) : null}
 
@@ -386,7 +389,10 @@ export default function TransactionScreen() {
                 <View style={styles.flex}>
                   <OptionField
                     label="Currency"
-                    options={COMMON_CURRENCIES.filter((item) => item.code !== currency).map((item) => ({ value: item.code, label: `${item.code} · ${item.name}` }))}
+                    options={COMMON_CURRENCIES.filter((item) => item.code !== currency).map((item) => ({
+                      value: item.code,
+                      label: `${item.code} · ${item.name}`,
+                    }))}
                     value={originalCurrency || undefined}
                     onChange={setOriginalCurrency}
                     placeholder="Choose"
@@ -398,9 +404,7 @@ export default function TransactionScreen() {
         </Card>
       )}
 
-      {attempted && invalid ? (
-        <Notice tone="negative" title="A couple of things to fix" body={Object.values(errors).filter(Boolean).join(' ')} />
-      ) : null}
+      {attempted && invalid ? <Notice tone="negative" title="A couple of things to fix" body={Object.values(errors).filter(Boolean).join(' ')} /> : null}
     </ModalScreen>
   );
 }

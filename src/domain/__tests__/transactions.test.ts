@@ -45,22 +45,38 @@ describe('splits', () => {
   it('explains what is wrong with bad splits', () => {
     expect(validateSplits({ amount: -100, splits: [{ id: 'a', amount: -100, categoryId: null }] })).toMatch(/at least two/);
     expect(
-      validateSplits({ amount: -100, splits: [{ id: 'a', amount: -60, categoryId: null }, { id: 'b', amount: -30, categoryId: null }] }),
+      validateSplits({
+        amount: -100,
+        splits: [
+          { id: 'a', amount: -60, categoryId: null },
+          { id: 'b', amount: -30, categoryId: null },
+        ],
+      }),
     ).toMatch(/add up/);
     expect(
-      validateSplits({ amount: -100, splits: [{ id: 'a', amount: -100, categoryId: null }, { id: 'b', amount: 0, categoryId: null }] }),
+      validateSplits({
+        amount: -100,
+        splits: [
+          { id: 'a', amount: -100, categoryId: null },
+          { id: 'b', amount: 0, categoryId: null },
+        ],
+      }),
     ).toMatch(/needs an amount/);
     expect(
-      validateSplits({ amount: -100, splits: [{ id: 'a', amount: -150, categoryId: null }, { id: 'b', amount: 50, categoryId: null }] }),
+      validateSplits({
+        amount: -100,
+        splits: [
+          { id: 'a', amount: -150, categoryId: null },
+          { id: 'b', amount: 50, categoryId: null },
+        ],
+      }),
     ).toMatch(/same direction/);
   });
 });
 
 describe('budgetImpacts', () => {
   it('puts an ordinary transaction in its own month', () => {
-    expect(budgetImpacts(tx({ date: '2026-03-10', amount: -500, categoryId: 'food' }))).toEqual([
-      { month: '2026-03', categoryId: 'food', amount: -500 },
-    ]);
+    expect(budgetImpacts(tx({ date: '2026-03-10', amount: -500, categoryId: 'food' }))).toEqual([{ month: '2026-03', categoryId: 'food', amount: -500 }]);
   });
 
   it('ignores transfers', () => {
@@ -116,10 +132,7 @@ describe('activity index', () => {
   });
 
   it('keeps uncategorised income and spending apart', () => {
-    const index = buildActivityIndex(
-      [tx({ amount: -700, categoryId: null }), tx({ amount: 700, categoryId: null })],
-      ctx(),
-    );
+    const index = buildActivityIndex([tx({ amount: -700, categoryId: null }), tx({ amount: 700, categoryId: null })], ctx());
     expect(activityFor(index, '2026-03', UNCATEGORIZED)).toBe(-700);
     expect(activityFor(index, '2026-03', UNCATEGORIZED_INCOME)).toBe(700);
   });
@@ -131,13 +144,31 @@ describe('filterTransactions', () => {
   const lookup = { accounts, categories };
   const items = [
     tx({ id: '1', accountId: 'cur', date: '2026-03-01', amount: -1250, payee: 'Greenway Market', categoryId: 'food', tags: ['weekly'] }),
-    tx({ id: '2', accountId: 'card', date: '2026-03-05', amount: -3000, payee: 'Cinema Nova', categoryId: 'fun', notes: 'Date night', status: 'pending', reviewed: false }),
+    tx({
+      id: '2',
+      accountId: 'card',
+      date: '2026-03-05',
+      amount: -3000,
+      payee: 'Cinema Nova',
+      categoryId: 'fun',
+      notes: 'Date night',
+      status: 'pending',
+      reviewed: false,
+    }),
     tx({ id: '3', accountId: 'cur', date: '2026-03-09', amount: 250000, payee: 'Employer', categoryId: null }),
     tx({ id: '4', accountId: 'cur', date: '2026-03-12', amount: -20000, payee: 'To savings', kind: 'transfer' }),
     tx({ id: '5', accountId: 'card', date: '2026-03-15', amount: -900, payee: 'Mystery', categoryId: null, rawPayee: 'SQ *MYSTERY 0042', reviewed: false }),
     tx({
-      id: '6', accountId: 'card', date: '2026-03-20', amount: -5000, payee: 'Superstore', categoryId: null,
-      splits: [{ id: 'a', amount: -4000, categoryId: 'food' }, { id: 'b', amount: -1000, categoryId: 'fun' }],
+      id: '6',
+      accountId: 'card',
+      date: '2026-03-20',
+      amount: -5000,
+      payee: 'Superstore',
+      categoryId: null,
+      splits: [
+        { id: 'a', amount: -4000, categoryId: 'food' },
+        { id: 'b', amount: -1000, categoryId: 'fun' },
+      ],
     }),
   ];
   const ids = (filter: Parameters<typeof filterTransactions>[1]) => filterTransactions(items, filter, lookup).map((item) => item.id);

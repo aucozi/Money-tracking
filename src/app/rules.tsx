@@ -29,7 +29,11 @@ export default function RulesScreen() {
       </T>
       {data.rules.length === 0 ? (
         <Card>
-          <EmptyState icon="git-branch-outline" title="No rules yet" body='Create one here, or switch on "Always file under…" when you categorise a transaction.' />
+          <EmptyState
+            icon="git-branch-outline"
+            title="No rules yet"
+            body='Create one here, or switch on "Always file under…" when you categorise a transaction.'
+          />
         </Card>
       ) : (
         data.rules.map((rule, index) => {
@@ -55,7 +59,14 @@ export default function RulesScreen() {
                 />
               </Row>
               <Row>
-                <IconButton icon="arrow-up" label={`Move rule ${index + 1} up`} onPress={() => store.moveRule(rule.id, -1)} disabled={index === 0} filled testID={`rule-up-${index}`} />
+                <IconButton
+                  icon="arrow-up"
+                  label={`Move rule ${index + 1} up`}
+                  onPress={() => store.moveRule(rule.id, -1)}
+                  disabled={index === 0}
+                  filled
+                  testID={`rule-up-${index}`}
+                />
                 <IconButton
                   icon="arrow-down"
                   label={`Move rule ${index + 1} down`}
@@ -65,7 +76,13 @@ export default function RulesScreen() {
                   testID={`rule-down-${index}`}
                 />
                 <View style={styles.flex} />
-                <Button label="Edit" kind="secondary" small onPress={() => router.push({ pathname: '/rule', params: { id: rule.id } })} testID={`rule-edit-${index}`} />
+                <Button
+                  label="Edit"
+                  kind="secondary"
+                  small
+                  onPress={() => router.push({ pathname: '/rule', params: { id: rule.id } })}
+                  testID={`rule-edit-${index}`}
+                />
               </Row>
             </Card>
           );

@@ -1,22 +1,7 @@
 import { toBase, type Ctx } from './context';
 import { addMonthsToKey, monthKey, monthLength, monthRange, parts } from './dates';
-import {
-  activityFor,
-  budgetImpacts,
-  UNCATEGORIZED,
-  UNCATEGORIZED_INCOME,
-  type ActivityIndex,
-} from './transactions';
-import type {
-  AppData,
-  BudgetEntry,
-  BudgetMode,
-  Category,
-  CategoryGroup,
-  ID,
-  MonthKey,
-  Transaction,
-} from './types';
+import { activityFor, budgetImpacts, UNCATEGORIZED, UNCATEGORIZED_INCOME, type ActivityIndex } from './transactions';
+import type { AppData, BudgetEntry, BudgetMode, Category, CategoryGroup, ID, MonthKey, Transaction } from './types';
 
 /** The budget in force for `month`: the latest entry that starts on or before it. */
 export function budgetAmountFor(entries: readonly BudgetEntry[] | undefined, month: MonthKey): number {
@@ -51,12 +36,7 @@ function normalise(entries: BudgetEntry[]): BudgetEntry[] {
  * - 'month'   changes this month only; later months keep what they had.
  * - 'forward' changes this month and every month after it.
  */
-export function setBudgetAmount(
-  entries: readonly BudgetEntry[] | undefined,
-  month: MonthKey,
-  amount: number,
-  scope: 'month' | 'forward',
-): BudgetEntry[] {
+export function setBudgetAmount(entries: readonly BudgetEntry[] | undefined, month: MonthKey, amount: number, scope: 'month' | 'forward'): BudgetEntry[] {
   const current = entries ?? [];
   const value = Math.max(0, Math.round(amount));
   const next = addMonthsToKey(month, 1);
@@ -66,9 +46,7 @@ export function setBudgetAmount(
     return normalise([...earlier, { from: month, amount: value }]);
   }
   const later = current.filter((entry) => entry.from > month);
-  const restored = later.some((entry) => entry.from === next)
-    ? later
-    : [...later, { from: next, amount: budgetAmountFor(current, next) }];
+  const restored = later.some((entry) => entry.from === next) ? later : [...later, { from: next, amount: budgetAmountFor(current, next) }];
   return normalise([...earlier, { from: month, amount: value }, ...restored]);
 }
 
@@ -225,12 +203,7 @@ export function computeMonthBudget(data: BudgetInput, index: ActivityIndex, mont
  * Cumulative spending for each day of `month` (index 0 = the 1st), in the base
  * currency. A share of a spread purchase from an earlier month counts on the 1st.
  */
-export function spendingByDay(
-  transactions: readonly Transaction[],
-  month: MonthKey,
-  ctx: Ctx,
-  incomeCategoryIds: ReadonlySet<ID>,
-): number[] {
+export function spendingByDay(transactions: readonly Transaction[], month: MonthKey, ctx: Ctx, incomeCategoryIds: ReadonlySet<ID>): number[] {
   const days = new Array<number>(monthLength(month)).fill(0);
   for (const tx of transactions) {
     for (const impact of budgetImpacts(tx)) {

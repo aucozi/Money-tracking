@@ -47,7 +47,9 @@ export default function SettingsScreen() {
   const confirm = useConfirm();
   const toast = useToast();
   const base = data.settings.baseCurrency;
-  const foreign = [...new Set([...data.accounts.map((account) => account.currency), ...Object.keys(data.settings.rates)])].filter((code) => code !== base).sort();
+  const foreign = [...new Set([...data.accounts.map((account) => account.currency), ...Object.keys(data.settings.rates)])]
+    .filter((code) => code !== base)
+    .sort();
   const baseName = COMMON_CURRENCIES.find((currency) => currency.code === base)?.name;
 
   const guard = async (work: () => Promise<void>) => {
@@ -89,7 +91,10 @@ export default function SettingsScreen() {
   const sample = async () => {
     const ok = await confirm({
       title: 'Load sample data?',
-      message: data.transactions.length > 0 ? 'This replaces everything in Waypoint now. Save a backup first if you want to keep it.' : 'Fills Waypoint with an invented household so you can look around.',
+      message:
+        data.transactions.length > 0
+          ? 'This replaces everything in Waypoint now. Save a backup first if you want to keep it.'
+          : 'Fills Waypoint with an invented household so you can look around.',
       confirmLabel: 'Load sample data',
       destructive: data.transactions.length > 0,
     });
@@ -101,7 +106,8 @@ export default function SettingsScreen() {
   const erase = async () => {
     const ok = await confirm({
       title: 'Erase everything?',
-      message: 'All accounts, transactions, budgets, bills, goals and rules are deleted from this device. There is no copy anywhere else unless you saved a backup.',
+      message:
+        'All accounts, transactions, budgets, bills, goals and rules are deleted from this device. There is no copy anywhere else unless you saved a backup.',
       confirmLabel: 'Erase everything',
       destructive: true,
     });
@@ -170,8 +176,24 @@ export default function SettingsScreen() {
 
       <SectionTitle>Organise</SectionTitle>
       <Card padded={false}>
-        <ListItem title="Categories" subtitle={`${data.categories.filter((category) => !category.archived).length} in ${data.categoryGroups.length} groups`} leading={<Glyph icon="🏷️" />} onPress={() => router.push('/categories')} testID="open-categories" />
-        <ListItem title="Rules" subtitle={data.rules.length === 0 ? 'Tidy up transactions automatically' : `${data.rules.length} ${data.rules.length === 1 ? 'rule' : 'rules'}, all yours to edit`} leading={<Glyph icon="⚙️" />} onPress={() => router.push('/rules')} testID="open-rules" />
+        <ListItem
+          title="Categories"
+          subtitle={`${data.categories.filter((category) => !category.archived).length} in ${data.categoryGroups.length} groups`}
+          leading={<Glyph icon="🏷️" />}
+          onPress={() => router.push('/categories')}
+          testID="open-categories"
+        />
+        <ListItem
+          title="Rules"
+          subtitle={
+            data.rules.length === 0
+              ? 'Tidy up transactions automatically'
+              : `${data.rules.length} ${data.rules.length === 1 ? 'rule' : 'rules'}, all yours to edit`
+          }
+          leading={<Glyph icon="⚙️" />}
+          onPress={() => router.push('/rules')}
+          testID="open-rules"
+        />
         <ListItem title="Import from CSV" subtitle="Bring in transactions from any bank" leading={<Glyph icon="📥" />} onPress={() => router.push('/import')} />
         <ListItem
           title="Bank connections"
@@ -180,19 +202,37 @@ export default function SettingsScreen() {
           onPress={() => router.push('/connections')}
           testID="open-connections-setting"
         />
-        <ListItem title="Investments" subtitle="Holdings, value and gains" leading={<Glyph icon="📈" />} onPress={() => router.push('/investments')} testID="open-investments-setting" />
+        <ListItem
+          title="Investments"
+          subtitle="Holdings, value and gains"
+          leading={<Glyph icon="📈" />}
+          onPress={() => router.push('/investments')}
+          testID="open-investments-setting"
+        />
       </Card>
 
       <SectionTitle>Your data</SectionTitle>
       <Card padded={false}>
-        <ListItem title="Export all transactions" subtitle="A CSV file for a spreadsheet or your accountant" leading={<Glyph icon="📤" />} onPress={exportAll} testID="export-all" />
+        <ListItem
+          title="Export all transactions"
+          subtitle="A CSV file for a spreadsheet or your accountant"
+          leading={<Glyph icon="📤" />}
+          onPress={exportAll}
+          testID="export-all"
+        />
         <ListItem title="Save a backup" subtitle="Everything in one file you control" leading={<Glyph icon="💾" />} onPress={backup} testID="save-backup" />
         <ListItem title="Restore from a backup" subtitle="Replaces what is here now" leading={<Glyph icon="♻️" />} onPress={restore} testID="restore-backup" />
-        <ListItem title="Load sample data" subtitle="An invented household to explore with" leading={<Glyph icon="🧪" />} onPress={sample} testID="load-sample" />
+        <ListItem
+          title="Load sample data"
+          subtitle="An invented household to explore with"
+          leading={<Glyph icon="🧪" />}
+          onPress={sample}
+          testID="load-sample"
+        />
       </Card>
       <T variant="caption" tone="faint">
-        Waypoint keeps your data on this device only. There is no account and no server, which also means no automatic copy: save a backup now and then, and before
-        changing phone. Bank connections are not part of a backup; connect them again after restoring.
+        Waypoint keeps your data on this device only. There is no account and no server, which also means no automatic copy: save a backup now and then, and
+        before changing phone. Bank connections are not part of a backup; connect them again after restoring.
       </T>
 
       <View style={styles.danger}>

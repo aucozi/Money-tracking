@@ -26,8 +26,7 @@ function LoadProblem({ message }: { message: string }) {
       <T variant="title">Your saved data could not be opened</T>
       <Notice tone="negative" title="What went wrong" body={message} />
       <T tone="muted">
-        Nothing has been deleted. The unreadable copy is kept on this device, and nothing will be saved over it until you
-        choose to start again.
+        Nothing has been deleted. The unreadable copy is kept on this device, and nothing will be saved over it until you choose to start again.
       </T>
       <Button
         label="Start again with empty data"
@@ -85,6 +84,8 @@ export default function RootLayout() {
     colors: { ...base.colors, background: theme.c.bg, card: theme.c.bg, text: theme.c.text, border: theme.c.border, primary: theme.c.accent },
   };
   const modal = { presentation: 'modal' as const };
+  // Pushed list screens open with the large title that shrinks into the bar on scroll.
+  const largeTitle = { headerLargeTitle: true, headerLargeTitleShadowVisible: false, headerLargeTitleStyle: { color: theme.c.text } };
 
   return (
     <ThemeProvider value={navigation}>
@@ -101,7 +102,8 @@ export default function RootLayout() {
               headerStyle: { backgroundColor: theme.c.bg },
               headerTintColor: theme.c.text,
               contentStyle: { backgroundColor: theme.c.bg },
-            }}>
+            }}
+          >
             {/* The title is what the back button on the next screen is called. */}
             <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />
             <Stack.Screen name="transaction" options={modal} />
@@ -112,11 +114,11 @@ export default function RootLayout() {
             <Stack.Screen name="category" options={modal} />
             <Stack.Screen name="import" options={modal} />
             <Stack.Screen name="holding" options={modal} />
-            <Stack.Screen name="connections" options={{ title: 'Bank connections' }} />
-            <Stack.Screen name="investments" options={{ title: 'Investments' }} />
-            <Stack.Screen name="rules" options={{ title: 'Rules' }} />
-            <Stack.Screen name="categories" options={{ title: 'Categories' }} />
-            <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+            <Stack.Screen name="connections" options={{ title: 'Bank connections', ...largeTitle }} />
+            <Stack.Screen name="investments" options={{ title: 'Investments', ...largeTitle }} />
+            <Stack.Screen name="rules" options={{ title: 'Rules', ...largeTitle }} />
+            <Stack.Screen name="categories" options={{ title: 'Categories', ...largeTitle }} />
+            <Stack.Screen name="settings" options={{ title: 'Settings', ...largeTitle }} />
           </Stack>
         )}
       </FeedbackProvider>

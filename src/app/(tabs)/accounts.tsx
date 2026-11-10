@@ -48,9 +48,11 @@ export default function Accounts() {
       <ListItem
         key={account.id}
         title={account.name}
-        subtitle={[foreign ? `About ${formatMoney(currencyToBase(balance, account.currency, ctx), base)}` : '', followed.has(account.id) ? 'Synced with your bank' : '']
-          .filter(Boolean)
-          .join(' · ') || undefined}
+        subtitle={
+          [foreign ? `About ${formatMoney(currencyToBase(balance, account.currency, ctx), base)}` : '', followed.has(account.id) ? 'Synced with your bank' : '']
+            .filter(Boolean)
+            .join(' · ') || undefined
+        }
         accessibilityLabel={`${account.name}, ${formatMoney(balance, account.currency)}`}
         leading={<Glyph icon={ACCOUNT_TYPES.find((item) => item.type === account.type)?.icon ?? '🗂️'} />}
         trailing={
@@ -68,8 +70,8 @@ export default function Accounts() {
   return (
     <Screen testID="accounts" {...refresh}>
       <TabHeader title="Accounts">
-        <IconButton icon="link-outline" label="Bank connections" onPress={() => router.push('/connections')} filled testID="open-connections" />
-        <IconButton icon="add" label="Add account" onPress={() => router.push('/account')} filled testID="add-account" />
+        <IconButton icon="link-outline" label="Bank connections" onPress={() => router.push('/connections')} testID="open-connections" />
+        <IconButton icon="add" label="Add account" onPress={() => router.push('/account')} testID="add-account" />
       </TabHeader>
 
       {data.accounts.length === 0 ? (
@@ -119,7 +121,13 @@ export default function Accounts() {
                   <T variant="caption" tone="faint">
                     Since {formatMonth(first.month, true)}
                   </T>
-                  <Money amount={change} currency={base} variant="heading" tone={change >= 0 ? 'positive' : 'negative'} options={{ sign: 'always', whole: true }} />
+                  <Money
+                    amount={change}
+                    currency={base}
+                    variant="heading"
+                    tone={change >= 0 ? 'positive' : 'negative'}
+                    options={{ sign: 'always', whole: true }}
+                  />
                 </View>
               ) : null}
             </Row>
@@ -181,7 +189,8 @@ export default function Accounts() {
                     <T variant="label" tone="muted" numeric>
                       {formatMoney(total, base)}
                     </T>
-                  }>
+                  }
+                >
                   {group.plural}
                 </SectionTitle>
                 <Card padded={false}>{accounts.map(row)}</Card>

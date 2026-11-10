@@ -23,11 +23,7 @@ function occurrence(rec: Pick<Recurring, 'frequency' | 'anchorDate'>, n: number)
 }
 
 /** Due dates within [from, to], never before the anchor or after the end date. */
-export function occurrencesBetween(
-  rec: Pick<Recurring, 'frequency' | 'anchorDate' | 'endDate'>,
-  from: ISODate,
-  to: ISODate,
-): ISODate[] {
+export function occurrencesBetween(rec: Pick<Recurring, 'frequency' | 'anchorDate' | 'endDate'>, from: ISODate, to: ISODate): ISODate[] {
   const last = rec.endDate && rec.endDate < to ? rec.endDate : to;
   if (last < from || last < rec.anchorDate) return [];
   // Jump close to the window, then step back a little so month clamping cannot skip a date.
@@ -42,10 +38,7 @@ export function occurrencesBetween(
   return result;
 }
 
-export function nextOccurrence(
-  rec: Pick<Recurring, 'frequency' | 'anchorDate' | 'endDate'>,
-  onOrAfter: ISODate,
-): ISODate | null {
+export function nextOccurrence(rec: Pick<Recurring, 'frequency' | 'anchorDate' | 'endDate'>, onOrAfter: ISODate): ISODate | null {
   const horizon = addDays(onOrAfter, STEP_DAYS[rec.frequency] + 31);
   return occurrencesBetween(rec, onOrAfter, horizon)[0] ?? null;
 }
@@ -149,11 +142,7 @@ export function upcoming(
 type Linkable = Pick<Transaction, 'payee' | 'amount' | 'kind'> & { rawPayee?: string };
 
 /** The recurring item an incoming transaction pays, if any. */
-export function linkRecurring(
-  tx: Linkable,
-  txCurrency: string,
-  recurrings: readonly Recurring[],
-): Recurring | undefined {
+export function linkRecurring(tx: Linkable, txCurrency: string, recurrings: readonly Recurring[]): Recurring | undefined {
   if (tx.kind === 'transfer') return undefined;
   const names = [normalizePayee(tx.payee), tx.rawPayee ? normalizePayee(tx.rawPayee) : ''].filter(Boolean);
   return recurrings.find((recurring) => {

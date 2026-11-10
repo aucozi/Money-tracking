@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { userEvent } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { act, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import { Alert } from 'react-native';
 
@@ -53,7 +54,7 @@ describe('first launch', () => {
     expect(await screen.findByText('Spent this month')).toBeOnTheScreen();
     expect(screen.getByText('6 transactions to review')).toBeOnTheScreen();
     expect(screen.getByText('Free to spend')).toBeOnTheScreen();
-    expect(screen.getByText('Net worth')).toBeOnTheScreen();
+    expect(screen.getByTestId('net-worth')).toBeOnTheScreen();
   });
 });
 
@@ -61,7 +62,16 @@ describe('returning to the app', () => {
   it('opens straight to the dashboard with saved data', async () => {
     const saved = emptyData('EUR');
     saved.settings.onboarded = true;
-    saved.accounts.push({ id: 'acc', name: 'Girokonto', type: 'checking', currency: 'EUR', openingBalance: 123456, openingDate: '2026-01-01', archived: false, includeInNetWorth: true });
+    saved.accounts.push({
+      id: 'acc',
+      name: 'Girokonto',
+      type: 'checking',
+      currency: 'EUR',
+      openingBalance: 123456,
+      openingDate: '2026-01-01',
+      archived: false,
+      includeInNetWorth: true,
+    });
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
     await launch();
     expect(await screen.findByText('Spent this month')).toBeOnTheScreen();
@@ -96,7 +106,13 @@ describe('recording money by hand', () => {
     await user.press(screen.getByTestId('save-button'));
 
     await waitFor(() => expect(useStore.getState().data.transactions).toHaveLength(1));
-    expect(useStore.getState().data.transactions[0]).toMatchObject({ amount: -1250, payee: 'Corner bakery', kind: 'standard', status: 'cleared', reviewed: true });
+    expect(useStore.getState().data.transactions[0]).toMatchObject({
+      amount: -1250,
+      payee: 'Corner bakery',
+      kind: 'standard',
+      status: 'cleared',
+      reviewed: true,
+    });
     expect(await screen.findByTestId('spent-this-month')).toHaveTextContent('$12.50');
   });
 
@@ -132,7 +148,8 @@ describe('deleting', () => {
       id = store.addTransaction({ accountId, date: '2026-11-09', amount: -900, payee: 'Cinema Nova' });
     });
 
-    await user.press(await screen.findByTestId('tab-transactions'));
+    // The tab bar is the system's own on iPhone, so move between tabs the way a tap on it would.
+    await act(async () => router.navigate('/transactions'));
     await user.press(await screen.findByTestId(`tx-${id}`));
     await user.press(await screen.findByTestId('delete-button'));
 

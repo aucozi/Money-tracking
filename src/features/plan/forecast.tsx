@@ -40,7 +40,11 @@ export function ForecastView() {
   if (cashAccounts.length === 0) {
     return (
       <Card>
-        <EmptyState icon="trending-up-outline" title="Nothing to forecast yet" body="Add a current, savings or cash account and the forecast will project its balance forward." />
+        <EmptyState
+          icon="trending-up-outline"
+          title="Nothing to forecast yet"
+          body="Add a current, savings or cash account and the forecast will project its balance forward."
+        />
       </Card>
     );
   }

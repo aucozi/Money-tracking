@@ -25,9 +25,7 @@ export function Bills() {
     const items = upcoming(data.recurrings, data.transactions, today, 45);
     const live = data.recurrings.filter((item) => item.status === 'active');
     const monthly = (sign: 1 | -1) =>
-      live
-        .filter((item) => Math.sign(item.amount) === sign)
-        .reduce((total, item) => total + currencyToBase(monthlyEquivalent(item), item.currency, ctx), 0);
+      live.filter((item) => Math.sign(item.amount) === sign).reduce((total, item) => total + currencyToBase(monthlyEquivalent(item), item.currency, ctx), 0);
     return {
       overdue: items.filter((item) => item.state === 'overdue'),
       soon: items.filter((item) => item.state !== 'overdue' && diffDays(today, item.date) <= 7),
@@ -49,7 +47,9 @@ export function Bills() {
               title={item.recurring.name}
               subtitle={`${overdue ? 'Was due' : 'Due'} ${formatRelative(item.date, today).toLowerCase()} · ${formatDate(item.date)}`}
               leading={<Glyph icon={item.recurring.amount > 0 ? '💼' : overdue ? '⏰' : '🗓️'} />}
-              trailing={<Money amount={item.recurring.amount} currency={item.recurring.currency} colored weight="600" tone={overdue ? 'negative' : undefined} />}
+              trailing={
+                <Money amount={item.recurring.amount} currency={item.recurring.currency} colored weight="600" tone={overdue ? 'negative' : undefined} />
+              }
               onPress={() => setActive(item)}
               testID={`bill-${item.recurring.id}-${item.date}`}
             />
@@ -197,8 +197,8 @@ export function Bills() {
               }}
             />
             <T variant="caption" tone="faint">
-              Marking it adds a transaction dated {formatDate(Math.abs(diffDays(active.date, today)) <= 12 ? today : active.date)}. If the payment arrives through an import
-              instead, it is matched automatically.
+              Marking it adds a transaction dated {formatDate(Math.abs(diffDays(active.date, today)) <= 12 ? today : active.date)}. If the payment arrives
+              through an import instead, it is matched automatically.
             </T>
           </>
         ) : null}

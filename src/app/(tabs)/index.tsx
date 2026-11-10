@@ -71,7 +71,7 @@ export default function Home() {
     <View style={styles.flex}>
       <Screen testID="home" {...refresh}>
         <TabHeader title={formatMonth(month)} subtitle="Your money at a glance">
-          <IconButton icon="settings-outline" label="Settings" onPress={() => router.push('/settings')} filled testID="open-settings" />
+          <IconButton icon="settings-outline" label="Settings" onPress={() => router.push('/settings')} testID="open-settings" />
         </TabHeader>
 
         {!hasAccounts ? (
@@ -101,7 +101,9 @@ export default function Home() {
                 label={`Spending so far this month is ${money(view.pace.spent)}. By the same day last month it was ${money(view.pace.lastMonthToDate)}.`}
                 zeroLine
                 series={[
-                  ...(budgeted > 0 ? [{ values: view.thisMonth.map((_, i) => (budgeted * (i + 1)) / view.thisMonth.length), color: c.textFaint, dashed: true }] : []),
+                  ...(budgeted > 0
+                    ? [{ values: view.thisMonth.map((_, i) => (budgeted * (i + 1)) / view.thisMonth.length), color: c.textFaint, dashed: true }]
+                    : []),
                   { values: view.lastMonth, color: c.textFaint },
                   { values: view.thisMonth, color: c.accent, fill: true, upTo: day },
                 ]}
@@ -215,7 +217,15 @@ export default function Home() {
                       title={item.recurring.name}
                       subtitle={item.state === 'overdue' ? `Was due ${formatRelative(item.date, today).toLowerCase()}` : formatRelative(item.date, today)}
                       leading={<Glyph icon={item.recurring.amount > 0 ? '💼' : item.state === 'overdue' ? '⏰' : '🗓️'} />}
-                      trailing={<Money amount={item.recurring.amount} currency={item.recurring.currency} colored weight="600" tone={item.state === 'overdue' ? 'negative' : undefined} />}
+                      trailing={
+                        <Money
+                          amount={item.recurring.amount}
+                          currency={item.recurring.currency}
+                          colored
+                          weight="600"
+                          tone={item.state === 'overdue' ? 'negative' : undefined}
+                        />
+                      }
                     />
                   ))}
                 </Card>
@@ -284,7 +294,12 @@ export default function Home() {
 function Legend({ color, label, dashed }: { color: string; label: string; dashed?: boolean }) {
   return (
     <Row gap={6}>
-      <View style={[styles.swatch, { backgroundColor: dashed ? 'transparent' : color, borderColor: color, borderWidth: dashed ? 1 : 0, borderStyle: dashed ? 'dashed' : 'solid' }]} />
+      <View
+        style={[
+          styles.swatch,
+          { backgroundColor: dashed ? 'transparent' : color, borderColor: color, borderWidth: dashed ? 1 : 0, borderStyle: dashed ? 'dashed' : 'solid' },
+        ]}
+      />
       <T variant="caption" tone="muted">
         {label}
       </T>

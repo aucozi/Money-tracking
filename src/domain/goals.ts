@@ -17,13 +17,7 @@ export interface GoalProgress {
   state: GoalState;
 }
 
-export function goalProgress(
-  goal: Goal,
-  accounts: readonly Account[],
-  balances: ReadonlyMap<ID, number>,
-  ctx: Ctx,
-  today: ISODate,
-): GoalProgress {
+export function goalProgress(goal: Goal, accounts: readonly Account[], balances: ReadonlyMap<ID, number>, ctx: Ctx, today: ISODate): GoalProgress {
   const linked = goal.accountId ? accounts.find((account) => account.id === goal.accountId) : undefined;
   const saved = linked
     ? Math.max(0, currencyToBase(balances.get(linked.id) ?? 0, linked.currency, ctx))
@@ -41,8 +35,7 @@ export function goalProgress(
 
   const daysLeft = diffDays(today, goal.targetDate);
   // Count the monthly contributions that still fit before the target date.
-  const calendarMonths =
-    monthsBetween(monthKey(today), monthKey(goal.targetDate)) + (parts(goal.targetDate).day >= parts(today).day ? 1 : 0);
+  const calendarMonths = monthsBetween(monthKey(today), monthKey(goal.targetDate)) + (parts(goal.targetDate).day >= parts(today).day ? 1 : 0);
   const monthsLeft = daysLeft <= 0 ? 0 : Math.max(1, calendarMonths);
   const monthlyNeeded = Math.ceil(remaining / Math.max(1, monthsLeft));
 

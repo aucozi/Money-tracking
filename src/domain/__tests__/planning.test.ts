@@ -72,7 +72,10 @@ describe('netWorth', () => {
 
 describe('netWorthHistory', () => {
   it('starts when the first account was opened instead of showing months of zero', () => {
-    const accounts = [account({ id: 'a', openingBalance: 5000, openingDate: '2026-03-10' }), account({ id: 'b', openingBalance: 1000, openingDate: '2026-04-02' })];
+    const accounts = [
+      account({ id: 'a', openingBalance: 5000, openingDate: '2026-03-10' }),
+      account({ id: 'b', openingBalance: 1000, openingDate: '2026-04-02' }),
+    ];
     const points = netWorthHistory(accounts, [], ctx(accounts), ['2026-01', '2026-02', '2026-03', '2026-04'], '2026-04-20');
     expect(points.map((point) => [point.month, point.net])).toEqual([
       ['2026-03', 5000],
@@ -170,22 +173,40 @@ describe('forecastBalance', () => {
 
 describe('goalProgress', () => {
   const goal = (overrides: Partial<Goal> = {}): Goal => ({
-    id: 'g', name: 'Trip', icon: '✈️', color: '#000', targetAmount: 240000, contributions: [],
-    createdDate: '2026-01-01', archived: false, ...overrides,
+    id: 'g',
+    name: 'Trip',
+    icon: '✈️',
+    color: '#000',
+    targetAmount: 240000,
+    contributions: [],
+    createdDate: '2026-01-01',
+    archived: false,
+    ...overrides,
   });
   const none = new Map<string, number>();
 
   it('tracks manual contributions and what is needed each month', () => {
     const progress = goalProgress(
-      goal({ targetDate: '2026-12-31', contributions: [{ id: 'a', date: '2026-02-01', amount: 60000 }, { id: 'b', date: '2026-03-01', amount: 20000 }] }),
-      [], none, ctx(), '2026-04-01',
+      goal({
+        targetDate: '2026-12-31',
+        contributions: [
+          { id: 'a', date: '2026-02-01', amount: 60000 },
+          { id: 'b', date: '2026-03-01', amount: 20000 },
+        ],
+      }),
+      [],
+      none,
+      ctx(),
+      '2026-04-01',
     );
     expect(progress).toMatchObject({ saved: 80000, remaining: 160000, monthsLeft: 9, monthlyNeeded: 17778, state: 'on-track' });
     expect(progress.fraction).toBeCloseTo(1 / 3);
   });
 
   it('says when a goal is behind schedule or past its date', () => {
-    expect(goalProgress(goal({ targetDate: '2026-12-31', contributions: [{ id: 'a', date: '2026-02-01', amount: 10000 }] }), [], none, ctx(), '2026-07-01').state).toBe('behind');
+    expect(
+      goalProgress(goal({ targetDate: '2026-12-31', contributions: [{ id: 'a', date: '2026-02-01', amount: 10000 }] }), [], none, ctx(), '2026-07-01').state,
+    ).toBe('behind');
     const late = goalProgress(goal({ targetDate: '2026-03-01' }), [], none, ctx(), '2026-04-01');
     expect(late).toMatchObject({ state: 'behind', monthsLeft: 0, monthlyNeeded: 240000 });
   });
@@ -264,7 +285,13 @@ describe('payoffPlan', () => {
       account({ id: 'cur', type: 'checking' }),
       account({ id: 'old', type: 'loan', archived: true }),
     ];
-    const balances = new Map([['card', -64000], ['usd', -100000], ['clear', 0], ['cur', -500], ['old', -900]]);
+    const balances = new Map([
+      ['card', -64000],
+      ['usd', -100000],
+      ['clear', 0],
+      ['cur', -500],
+      ['old', -900],
+    ]);
     expect(debtsFromAccounts(accounts, balances, ctx(accounts))).toEqual([
       { id: 'card', name: 'Card', balance: 64000, apr: 22, minPayment: 3500 },
       { id: 'usd', name: 'US loan', balance: 90000, apr: 5, minPayment: 9000 },

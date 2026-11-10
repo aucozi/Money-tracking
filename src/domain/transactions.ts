@@ -123,22 +123,18 @@ export interface FilterLookup {
 export function isFilterActive(filter: TxFilter): boolean {
   return Boolean(
     filter.query?.trim() ||
-      filter.accountIds?.length ||
-      filter.categoryIds?.length ||
-      filter.tags?.length ||
-      filter.from ||
-      filter.to ||
-      filter.status ||
-      filter.needsReview ||
-      filter.type,
+    filter.accountIds?.length ||
+    filter.categoryIds?.length ||
+    filter.tags?.length ||
+    filter.from ||
+    filter.to ||
+    filter.status ||
+    filter.needsReview ||
+    filter.type,
   );
 }
 
-export function filterTransactions(
-  transactions: readonly Transaction[],
-  filter: TxFilter,
-  lookup: FilterLookup,
-): Transaction[] {
+export function filterTransactions(transactions: readonly Transaction[], filter: TxFilter, lookup: FilterLookup): Transaction[] {
   const categoryName = new Map(lookup.categories.map((category) => [category.id, category.name.toLowerCase()]));
   const account = new Map(lookup.accounts.map((item) => [item.id, item]));
   const tokens = (filter.query ?? '').toLowerCase().split(/\s+/).filter(Boolean);
@@ -189,9 +185,7 @@ export function filterTransactions(
 
 /** Newest first; within a day, the most recently entered first. */
 export function sortNewestFirst(transactions: readonly Transaction[]): Transaction[] {
-  return [...transactions].sort(
-    (a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.createdAt - a.createdAt || (a.id < b.id ? 1 : -1)),
-  );
+  return [...transactions].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.createdAt - a.createdAt || (a.id < b.id ? 1 : -1)));
 }
 
 export interface DayGroup {

@@ -43,7 +43,14 @@ export default function HoldingScreen() {
   const save = () => {
     setAttempted(true);
     if (invalid || !account || value === null) return;
-    const input = { name: name.trim() || symbol.trim().toUpperCase(), symbol: symbol.trim().toUpperCase() || undefined, shares, marketValue: value, costBasis: cost && cost > 0 ? cost : undefined, updatedAt: today };
+    const input = {
+      name: name.trim() || symbol.trim().toUpperCase(),
+      symbol: symbol.trim().toUpperCase() || undefined,
+      shares,
+      marketValue: value,
+      costBasis: cost && cost > 0 ? cost : undefined,
+      updatedAt: today,
+    };
     if (existing) store.updateHolding(existing.id, input);
     else store.addHolding({ ...input, accountId: account.id, currency });
     toast(existing ? 'Holding saved' : 'Holding added');
@@ -52,7 +59,12 @@ export default function HoldingScreen() {
 
   const remove = async () => {
     if (!existing) return;
-    const ok = await confirm({ title: `Remove ${existing.name}?`, message: 'The account balance is lowered by what this holding was worth.', confirmLabel: 'Remove', destructive: true });
+    const ok = await confirm({
+      title: `Remove ${existing.name}?`,
+      message: 'The account balance is lowered by what this holding was worth.',
+      confirmLabel: 'Remove',
+      destructive: true,
+    });
     if (!ok) return;
     store.deleteHolding(existing.id);
     toast('Holding removed');
@@ -69,7 +81,11 @@ export default function HoldingScreen() {
   if (accounts.length === 0 && !existing) {
     return (
       <ModalScreen title="New holding">
-        <Notice tone="accent" title="Add an investment account first" body="Holdings live inside an investment account. Accounts kept up to date by a bank connection manage their own holdings." />
+        <Notice
+          tone="accent"
+          title="Add an investment account first"
+          body="Holdings live inside an investment account. Accounts kept up to date by a bank connection manage their own holdings."
+        />
       </ModalScreen>
     );
   }
@@ -78,7 +94,8 @@ export default function HoldingScreen() {
     <ModalScreen
       title={existing ? 'Edit holding' : 'New holding'}
       testID="holding-screen"
-      footer={<FormActions onSave={save} onDelete={existing ? remove : undefined} saveLabel={existing ? 'Save' : 'Add holding'} />}>
+      footer={<FormActions onSave={save} onDelete={existing ? remove : undefined} saveLabel={existing ? 'Save' : 'Add holding'} />}
+    >
       {!existing ? (
         <OptionField
           label="Account"
@@ -90,10 +107,27 @@ export default function HoldingScreen() {
       ) : null}
       <Row align="flex-start">
         <View style={{ width: 110 }}>
-          <Field label="Symbol" value={symbol} onChangeText={setSymbol} placeholder="VWRL" autoCapitalize="characters" autoCorrect={false} testID="holding-symbol" />
+          <Field
+            label="Symbol"
+            value={symbol}
+            onChangeText={setSymbol}
+            placeholder="VWRL"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            testID="holding-symbol"
+          />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label="Name" value={name} onChangeText={setName} placeholder="e.g. World index fund" autoCapitalize="words" autoFocus={!existing} error={attempted ? errors.name : null} testID="holding-name" />
+          <Field
+            label="Name"
+            value={name}
+            onChangeText={setName}
+            placeholder="e.g. World index fund"
+            autoCapitalize="words"
+            autoFocus={!existing}
+            error={attempted ? errors.name : null}
+            testID="holding-name"
+          />
         </View>
       </Row>
       <Field
@@ -115,7 +149,14 @@ export default function HoldingScreen() {
         hint={value && shares > 0 ? `${formatMoney(Math.round(value / shares), currency)} a share` : undefined}
         testID="holding-value"
       />
-      <AmountField label="What you paid, in total (optional)" value={cost} currency={currency} onChange={setCost} hint="Used to show your gain or loss." testID="holding-cost" />
+      <AmountField
+        label="What you paid, in total (optional)"
+        value={cost}
+        currency={currency}
+        onChange={setCost}
+        hint="Used to show your gain or loss."
+        testID="holding-cost"
+      />
       <T variant="caption" tone="faint">
         The account&apos;s balance follows the total of its holdings. Update the value whenever you check your statement.
       </T>

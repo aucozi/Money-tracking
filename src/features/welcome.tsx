@@ -1,4 +1,3 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { getLocales } from 'expo-localization';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -7,7 +6,8 @@ import { todayISO } from '@/domain/dates';
 import { useStore } from '@/store/store';
 import { CurrencyField } from '@/ui/pickers';
 import { Button, Card, Row, Screen, Spacer, T, type IconName } from '@/ui/primitives';
-import { space, useTheme } from '@/ui/theme';
+import { Icon } from '@/ui/icon';
+import { continuous, space, useTheme } from '@/ui/theme';
 
 function deviceCurrency(): string {
   try {
@@ -20,8 +20,16 @@ function deviceCurrency(): string {
 
 const POINTS: { icon: IconName; title: string; body: string }[] = [
   { icon: 'lock-closed-outline', title: 'Yours alone', body: 'Your data lives on this device. No account to create, and Waypoint never sees a bank password.' },
-  { icon: 'globe-outline', title: 'Any bank, any currency', body: 'Add transactions by hand, import a CSV from any bank, or connect your bank for automatic updates.' },
-  { icon: 'trending-up-outline', title: 'See what is coming', body: 'Bills, goals and a day-by-day forecast show where your balance is heading, not just where it has been.' },
+  {
+    icon: 'globe-outline',
+    title: 'Any bank, any currency',
+    body: 'Add transactions by hand, import a CSV from any bank, or connect your bank for automatic updates.',
+  },
+  {
+    icon: 'trending-up-outline',
+    title: 'See what is coming',
+    body: 'Bills, goals and a day-by-day forecast show where your balance is heading, not just where it has been.',
+  },
 ];
 
 export function Welcome() {
@@ -33,8 +41,8 @@ export function Welcome() {
   return (
     <Screen edges={['top', 'bottom']} testID="welcome">
       <Spacer size={space.xl} />
-      <View style={[styles.mark, { backgroundColor: c.accent }]}>
-        <Ionicons name="navigate" size={30} color={c.onAccent} />
+      <View style={[styles.mark, continuous, { backgroundColor: c.accent }]}>
+        <Icon name="navigate" size={30} color={c.onAccent} />
       </View>
       <T variant="display">Waypoint</T>
       <T variant="heading" tone="muted" weight="400">
@@ -44,7 +52,9 @@ export function Welcome() {
       <Card>
         {POINTS.map((point) => (
           <Row key={point.title} align="flex-start">
-            <Ionicons name={point.icon} size={22} color={c.accent} style={styles.pointIcon} />
+            <View style={styles.pointIcon}>
+              <Icon name={point.icon} size={22} color={c.accent} />
+            </View>
             <View style={styles.flex}>
               <T variant="heading">{point.title}</T>
               <T tone="muted">{point.body}</T>
@@ -65,6 +75,6 @@ export function Welcome() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  mark: { width: 60, height: 60, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  mark: { width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   pointIcon: { marginTop: 2 },
 });

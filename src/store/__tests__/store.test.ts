@@ -101,7 +101,16 @@ describe('store persistence', () => {
     s.updateTransaction(tx, { notes: 'checkup' });
     s.updateTransactions([tx], { categoryId: category });
     const transfer = s.addTransfer({ fromAccountId: a, toAccountId: b, date: '2026-11-09', amount: 100 });
-    const recurring = s.addRecurring({ name: 'Insurance', amount: -2000, currency: 'EUR', categoryId: category, frequency: 'monthly', anchorDate: '2026-11-15', matchText: 'Insurance', tolerancePct: 10 });
+    const recurring = s.addRecurring({
+      name: 'Insurance',
+      amount: -2000,
+      currency: 'EUR',
+      categoryId: category,
+      frequency: 'monthly',
+      anchorDate: '2026-11-15',
+      matchText: 'Insurance',
+      tolerancePct: 10,
+    });
     s.updateRecurring(recurring, { amount: -2100 });
     s.skipOccurrence(recurring, '2026-12-15');
     const payment = s.markPaid(recurring, '2026-11-15', '2026-11-09');

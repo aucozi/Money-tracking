@@ -85,9 +85,7 @@ export function ruleMatches(rule: Rule, tx: Matchable): boolean {
 /** A rule with no conditions would match everything, which is never what anyone means. */
 export function ruleHasConditions(rule: Pick<Rule, 'conditions'>): boolean {
   const c = rule.conditions;
-  return Boolean(
-    c.payeeText?.trim() || c.amountMin !== undefined || c.amountMax !== undefined || c.accountId || c.direction,
-  );
+  return Boolean(c.payeeText?.trim() || c.amountMin !== undefined || c.amountMax !== undefined || c.accountId || c.direction);
 }
 
 export function ruleHasActions(rule: Pick<Rule, 'actions'>): boolean {
@@ -173,11 +171,7 @@ export function describeRule(
     when.push(`payee ${verb} "${c.payeeText.trim()}"`);
   }
   if (c.amountMin !== undefined && c.amountMax !== undefined) {
-    when.push(
-      c.amountMin === c.amountMax
-        ? `amount is ${names.money(c.amountMin)}`
-        : `amount is ${names.money(c.amountMin)}–${names.money(c.amountMax)}`,
-    );
+    when.push(c.amountMin === c.amountMax ? `amount is ${names.money(c.amountMin)}` : `amount is ${names.money(c.amountMin)}–${names.money(c.amountMax)}`);
   } else if (c.amountMin !== undefined) when.push(`amount is at least ${names.money(c.amountMin)}`);
   else if (c.amountMax !== undefined) when.push(`amount is at most ${names.money(c.amountMax)}`);
   if (c.direction) when.push(c.direction === 'expense' ? 'money goes out' : 'money comes in');

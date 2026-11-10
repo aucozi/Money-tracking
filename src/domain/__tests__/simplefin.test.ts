@@ -2,15 +2,7 @@ import demoV1 from '@/test/fixtures/simplefin-demo-v1.json';
 import demoV2 from '@/test/fixtures/simplefin-demo-v2.json';
 
 import { decodeBase64, encodeBase64 } from '../sync/base64';
-import {
-  accountsUrl,
-  claimUrlFromToken,
-  namesFor,
-  parseAccessUrl,
-  parseAccountSet,
-  SIMPLEFIN_DEMO_TOKEN,
-  SimpleFinError,
-} from '../sync/simplefin';
+import { accountsUrl, claimUrlFromToken, namesFor, parseAccessUrl, parseAccountSet, SIMPLEFIN_DEMO_TOKEN, SimpleFinError } from '../sync/simplefin';
 
 const today = '2026-11-10';
 
@@ -94,7 +86,15 @@ describe('parseAccountSet', () => {
       pending: false,
     });
     expect(savings.holdings).toEqual([
-      { remoteId: '25bc4910-4cb4-437b-9924-ee98003651c5', name: 'Shares of Apple', symbol: 'AAPL', shares: 550, marketValue: 10588480, costBasis: 5500, currency: 'USD' },
+      {
+        remoteId: '25bc4910-4cb4-437b-9924-ee98003651c5',
+        name: 'Shares of Apple',
+        symbol: 'AAPL',
+        shares: 550,
+        marketValue: 10588480,
+        costBasis: 5500,
+        currency: 'USD',
+      },
     ]);
     expect(empty.transactions).toEqual([]);
     expect(empty.holdings).toEqual([]);
@@ -114,7 +114,11 @@ describe('parseAccountSet', () => {
         errlist: [],
         accounts: [
           {
-            id: 'a', name: 'Card', currency: 'usd', balance: '-120.50', 'balance-date': 1794355200,
+            id: 'a',
+            name: 'Card',
+            currency: 'usd',
+            balance: '-120.50',
+            'balance-date': 1794355200,
             transactions: [
               { id: 'p1', posted: 0, amount: '-12.00', description: 'SQ *CORNER BAKERY 0412', transacted_at: 1794182400 },
               { id: 'p2', posted: 1794268800, amount: '-8.00', description: 'Cafe', pending: true },
@@ -168,9 +172,22 @@ describe('parseAccountSet', () => {
           { name: 'No id', currency: 'USD', balance: '1' },
           'junk',
           {
-            id: 'ok', name: '', currency: 'EUR', balance: '10', 'balance-date': 'soon',
-            transactions: [{ id: '', amount: '1', description: 'no id' }, { id: 't', amount: 'x', description: 'bad amount' }, null, { id: 'good', posted: 1794297600, amount: '5.5', description: '' }],
-            holdings: [{ id: 'h', market_value: '100.00', shares: '2', currency: 'zzz', cost_basis: '0.00' }, { id: '', market_value: '1', shares: '1' }, { id: 'x', market_value: '1', shares: 'many' }],
+            id: 'ok',
+            name: '',
+            currency: 'EUR',
+            balance: '10',
+            'balance-date': 'soon',
+            transactions: [
+              { id: '', amount: '1', description: 'no id' },
+              { id: 't', amount: 'x', description: 'bad amount' },
+              null,
+              { id: 'good', posted: 1794297600, amount: '5.5', description: '' },
+            ],
+            holdings: [
+              { id: 'h', market_value: '100.00', shares: '2', currency: 'zzz', cost_basis: '0.00' },
+              { id: '', market_value: '1', shares: '1' },
+              { id: 'x', market_value: '1', shares: 'many' },
+            ],
           },
         ],
       },
@@ -182,8 +199,12 @@ describe('parseAccountSet', () => {
     ]);
     expect(accounts).toHaveLength(1);
     expect(accounts[0]).toMatchObject({ remoteId: 'ok', name: 'Account', currency: 'EUR', balance: 1000, balanceDate: today });
-    expect(accounts[0].transactions).toEqual([{ remoteId: 'good', date: '2026-11-10', amount: 550, payee: undefined, description: 'Unknown', memo: undefined, pending: false }]);
-    expect(accounts[0].holdings).toEqual([{ remoteId: 'h', name: 'Holding', symbol: undefined, shares: 2, marketValue: 10000, costBasis: undefined, currency: 'EUR' }]);
+    expect(accounts[0].transactions).toEqual([
+      { remoteId: 'good', date: '2026-11-10', amount: 550, payee: undefined, description: 'Unknown', memo: undefined, pending: false },
+    ]);
+    expect(accounts[0].holdings).toEqual([
+      { remoteId: 'h', name: 'Holding', symbol: undefined, shares: 2, marketValue: 10000, costBasis: undefined, currency: 'EUR' },
+    ]);
   });
 
   it('refuses a reply that is not an account set', () => {

@@ -2,15 +2,7 @@ import { getLocales } from 'expo-localization';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import {
-  buildImportRows,
-  inferMapping,
-  inferOptions,
-  readCSV,
-  type ColumnMapping,
-  type Field as CsvField,
-  type ImportOptions,
-} from '@/domain/csv';
+import { buildImportRows, inferMapping, inferOptions, readCSV, type ColumnMapping, type Field as CsvField, type ImportOptions } from '@/domain/csv';
 import { formatDate, type DateOrder } from '@/domain/dates';
 import { formatMoney } from '@/domain/money';
 import { findDuplicates } from '@/domain/transactions';
@@ -78,7 +70,13 @@ export default function ImportScreen() {
   );
   const result = useMemo(() => buildImportRows(file, mapping, effective), [file, mapping, effective]);
   const duplicates = useMemo(
-    () => (accountId ? findDuplicates(result.rows.map((row) => ({ ...row, accountId })), data.transactions) : result.rows.map(() => null)),
+    () =>
+      accountId
+        ? findDuplicates(
+            result.rows.map((row) => ({ ...row, accountId })),
+            data.transactions,
+          )
+        : result.rows.map(() => null),
     [result.rows, accountId, data.transactions],
   );
   const chosen = result.rows.filter((_, index) => duplicates[index] === null || (includeLikely && duplicates[index] === 'likely'));
@@ -86,7 +84,10 @@ export default function ImportScreen() {
   const likely = duplicates.filter((kind) => kind === 'likely').length;
   const spending = chosen.filter((row) => row.amount < 0).length;
 
-  const columnOptions = [{ value: NONE, label: 'Not in this file' }, ...file.headers.map((header, index) => ({ value: String(index), label: header, hint: file.rows[0]?.[index] ? `e.g. ${file.rows[0][index]}` : undefined }))];
+  const columnOptions = [
+    { value: NONE, label: 'Not in this file' },
+    ...file.headers.map((header, index) => ({ value: String(index), label: header, hint: file.rows[0]?.[index] ? `e.g. ${file.rows[0][index]}` : undefined })),
+  ];
   const setColumn = (field: CsvField, value: string) => {
     const next = { ...mapping };
     if (value === NONE) delete next[field];
@@ -129,7 +130,8 @@ export default function ImportScreen() {
           disabled={chosen.length === 0 || !account}
           testID="run-import"
         />
-      }>
+      }
+    >
       <T tone="muted">
         Download a CSV export from your bank&apos;s website or app, from any bank in any country, and bring it in here. Nothing leaves this device.
       </T>
@@ -194,13 +196,15 @@ export default function ImportScreen() {
           <Notice
             tone={chosen.length > 0 ? 'accent' : 'warning'}
             title={`${chosen.length} to import`}
-            body={[
-              exact > 0 ? `${exact} already in Waypoint and skipped.` : '',
-              likely > 0 ? `${likely} look like ones you already have${includeLikely ? ' and will be imported anyway' : ' and are skipped'}.` : '',
-              result.errors.length > 0 ? `${result.errors.length} could not be read.` : '',
-            ]
-              .filter(Boolean)
-              .join(' ') || 'Every row was read and none are duplicates.'}
+            body={
+              [
+                exact > 0 ? `${exact} already in Waypoint and skipped.` : '',
+                likely > 0 ? `${likely} look like ones you already have${includeLikely ? ' and will be imported anyway' : ' and are skipped'}.` : '',
+                result.errors.length > 0 ? `${result.errors.length} could not be read.` : '',
+              ]
+                .filter(Boolean)
+                .join(' ') || 'Every row was read and none are duplicates.'
+            }
           />
           {likely > 0 ? (
             <ToggleRow
@@ -254,7 +258,11 @@ export default function ImportScreen() {
                     trailing={
                       <View style={{ alignItems: 'flex-end', gap: 2 }}>
                         <Money amount={row.amount} currency={currency} colored weight="600" />
-                        {duplicates[index] === 'exact' ? <Pill label="Already have it" /> : duplicates[index] === 'likely' ? <Pill label="Likely duplicate" tone="warning" /> : null}
+                        {duplicates[index] === 'exact' ? (
+                          <Pill label="Already have it" />
+                        ) : duplicates[index] === 'likely' ? (
+                          <Pill label="Likely duplicate" tone="warning" />
+                        ) : null}
                       </View>
                     }
                   />
@@ -262,14 +270,23 @@ export default function ImportScreen() {
               </Card>
               {result.rows.length > 8 ? (
                 <T variant="caption" tone="faint" center>
-                  and {result.rows.length - 8} more · total {formatMoney(chosen.reduce((sum, row) => sum + row.amount, 0), currency, { sign: 'always' })}
+                  and {result.rows.length - 8} more · total{' '}
+                  {formatMoney(
+                    chosen.reduce((sum, row) => sum + row.amount, 0),
+                    currency,
+                    { sign: 'always' },
+                  )}
                 </T>
               ) : null}
             </>
           ) : null}
         </>
       ) : text.trim() ? (
-        <Notice tone="warning" title="No rows found" body="This does not look like a CSV file. Check that it has one transaction per line with columns separated by commas, semicolons or tabs." />
+        <Notice
+          tone="warning"
+          title="No rows found"
+          body="This does not look like a CSV file. Check that it has one transaction per line with columns separated by commas, semicolons or tabs."
+        />
       ) : null}
     </ModalScreen>
   );

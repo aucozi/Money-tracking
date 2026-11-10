@@ -86,7 +86,8 @@ export default function CategoriesScreen() {
         visible={editingGroup !== null}
         onClose={() => setEditingGroup(null)}
         title={editingGroup === 'new' ? 'New group' : 'Rename group'}
-        footer={<Button label="Save" onPress={saveGroup} disabled={!groupName.trim()} testID="save-group" />}>
+        footer={<Button label="Save" onPress={saveGroup} disabled={!groupName.trim()} testID="save-group" />}
+      >
         <Field label="Name" value={groupName} onChangeText={setGroupName} autoFocus autoCapitalize="words" testID="group-name" />
         {editingGroup === 'new' ? (
           <Segmented

@@ -82,8 +82,7 @@ export function createBackup(data: AppData, now: Date = new Date()): string {
 
 export class BackupError extends Error {}
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const isInteger = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value);
 const isText = (value: unknown): value is string => typeof value === 'string';
 
@@ -192,7 +191,8 @@ export function validateData(source: Record<string, unknown>): AppData {
   // Holdings and connections arrived in schema 2; older backups simply have none.
   const holdings = source.holdings === undefined ? [] : list(source, 'holdings');
   holdings.forEach((holding) => {
-    if (!isText(holding.accountId) || !accountIds.has(holding.accountId)) throw new BackupError(`Holding "${String(holding.name)}" belongs to an account that is not in the backup.`);
+    if (!isText(holding.accountId) || !accountIds.has(holding.accountId))
+      throw new BackupError(`Holding "${String(holding.name)}" belongs to an account that is not in the backup.`);
     if (!isText(holding.name) || !isInteger(holding.marketValue) || typeof holding.shares !== 'number' || !isText(holding.currency)) {
       throw new BackupError(`Holding "${String(holding.name)}" is not valid.`);
     }

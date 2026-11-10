@@ -37,7 +37,15 @@ test('a CSV from any bank imports cleanly, and importing it twice adds nothing',
   await expect(page.getByTestId('tx-summary')).toContainText('3 transactions');
 
   let data = await savedData(page);
-  expect(data.transactions.map((tx: { date: string; amount: number; payee: string; rawPayee?: string; reviewed: boolean }) => [tx.date, tx.amount, tx.payee, tx.rawPayee, tx.reviewed])).toEqual([
+  expect(
+    data.transactions.map((tx: { date: string; amount: number; payee: string; rawPayee?: string; reviewed: boolean }) => [
+      tx.date,
+      tx.amount,
+      tx.payee,
+      tx.rawPayee,
+      tx.reviewed,
+    ]),
+  ).toEqual([
     ['2026-11-03', -450, 'Corner Bakery', 'SQ *CORNER BAKERY 0412', false],
     ['2026-11-04', -115000, 'Landlord Ltd', undefined, false],
     ['2026-11-05', 325000, 'Employer GmbH', undefined, false],
@@ -155,12 +163,12 @@ test('dark appearance can be chosen and is remembered', async ({ page }) => {
   await page.getByTestId('start-fresh').click();
   await page.getByTestId('open-settings').click();
   const background = () => page.getByTestId('settings-screen').evaluate((node) => getComputedStyle(node).backgroundColor);
-  expect(await background()).toBe('rgb(245, 243, 238)');
+  expect(await background()).toBe('rgb(242, 242, 247)');
   await page.getByRole('tab', { name: 'Dark' }).click();
-  expect(await background()).toBe('rgb(12, 17, 16)');
+  expect(await background()).toBe('rgb(0, 0, 0)');
   await reload(page);
   await expect(page.getByTestId('settings-screen')).toBeVisible();
-  expect(await background()).toBe('rgb(12, 17, 16)');
+  expect(await background()).toBe('rgb(0, 0, 0)');
 });
 
 test('categories can be added and used straight away', async ({ page }) => {

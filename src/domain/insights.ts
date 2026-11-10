@@ -51,12 +51,7 @@ export interface FreeToSpend {
  * minus what is already spent, minus bills that are due before month end and
  * not yet paid. Null when there is no budget to measure against.
  */
-export function freeToSpend(
-  budget: MonthBudget,
-  schedule: readonly Occurrence[],
-  ctx: Ctx,
-  today: ISODate,
-): FreeToSpend | null {
+export function freeToSpend(budget: MonthBudget, schedule: readonly Occurrence[], ctx: Ctx, today: ISODate): FreeToSpend | null {
   if (budget.totalBudgeted <= 0 || monthKey(today) !== budget.month) return null;
   const end = monthEnd(budget.month);
   let billsDue = 0;
@@ -81,13 +76,7 @@ export interface Pace {
   expectedByNow: number | null;
 }
 
-export function pace(
-  thisMonth: readonly number[],
-  lastMonth: readonly number[],
-  budgeted: number,
-  today: ISODate,
-  month: MonthKey,
-): Pace {
+export function pace(thisMonth: readonly number[], lastMonth: readonly number[], budgeted: number, today: ISODate, month: MonthKey): Pace {
   const isCurrent = monthKey(today) === month;
   const day = isCurrent ? parts(today).day : thisMonth.length;
   const spent = thisMonth[Math.min(day, thisMonth.length) - 1] ?? 0;

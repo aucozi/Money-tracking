@@ -100,7 +100,9 @@ export function linkAccounts(
       const target = accounts.find((account) => account.id === choice.accountId);
       // An account can only follow one remote account, and only one in its own currency.
       const taken = data.connections.some((other) =>
-        Object.entries(other.links).some(([otherRemote, accountId]) => accountId === choice.accountId && !(other.id === connectionId && otherRemote === remoteId)),
+        Object.entries(other.links).some(
+          ([otherRemote, accountId]) => accountId === choice.accountId && !(other.id === connectionId && otherRemote === remoteId),
+        ),
       );
       if (target && !taken && (!source || source.currency === target.currency)) links[remoteId] = target.id;
     } else if (source && !links[remoteId]) {
@@ -233,7 +235,9 @@ export function applySync(
     accounts = accounts.map((item) => (item.id === account.id ? reconciled : item));
 
     if (source.holdings) {
-      const previous = new Map(holdings.filter((holding) => holding.accountId === account.id && holding.remoteId).map((holding) => [holding.remoteId as string, holding]));
+      const previous = new Map(
+        holdings.filter((holding) => holding.accountId === account.id && holding.remoteId).map((holding) => [holding.remoteId as string, holding]),
+      );
       const fresh: Holding[] = source.holdings.map((item) => ({
         id: previous.get(item.remoteId)?.id ?? newId('hold_'),
         accountId: account.id,

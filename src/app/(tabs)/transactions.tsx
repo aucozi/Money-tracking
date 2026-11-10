@@ -6,24 +6,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { transactionsToCSV } from '@/domain/backup';
 import { formatDate, formatRelative, todayISO } from '@/domain/dates';
 import { formatMoney } from '@/domain/money';
-import {
-  filterTransactions,
-  groupByDay,
-  isFilterActive,
-  sortNewestFirst,
-  totalsOf,
-  UNCATEGORIZED,
-  type TxFilter,
-} from '@/domain/transactions';
+import { filterTransactions, groupByDay, isFilterActive, sortNewestFirst, totalsOf, UNCATEGORIZED, type TxFilter } from '@/domain/transactions';
 import type { Transaction } from '@/domain/types';
-import { Fab, TabHeader, TransactionRow, useLookups } from '@/features/shared';
+import { Fab, FloatingDock, TabHeader, TransactionRow, useLookups } from '@/features/shared';
 import { saveTextFile } from '@/platform/files';
 import { useCtx, useData, useToday, useUi } from '@/store/hooks';
 import { useStore } from '@/store/store';
+import { Glass } from '@/ui/glass';
 import { Sheet, useConfirm, useToast } from '@/ui/overlays';
 import { AccountField, CategoryField, CategorySheet, DateField } from '@/ui/pickers';
 import { Button, Chip, EmptyState, Field, IconButton, Row, T } from '@/ui/primitives';
-import { space, useTheme } from '@/ui/theme';
+import { continuous, radius, space, useTheme, WEB_TAB_BAR_SPACE } from '@/ui/theme';
 
 type Quick = 'all' | 'review' | 'pending' | 'uncategorized' | 'expense' | 'income' | 'transfer';
 
@@ -35,7 +28,12 @@ function quickOf(filter: TxFilter): Quick {
 }
 
 function withQuick(filter: TxFilter, quick: Quick): TxFilter {
-  const next: TxFilter = { ...filter, needsReview: undefined, status: undefined, type: undefined };
+  const next: TxFilter = {
+    ...filter,
+    needsReview: undefined,
+    status: undefined,
+    type: undefined,
+  };
   if (quickOf(filter) === 'uncategorized') next.categoryIds = undefined;
   if (quick === 'review') next.needsReview = true;
   else if (quick === 'pending') next.status = 'pending';
@@ -44,7 +42,7 @@ function withQuick(filter: TxFilter, quick: Quick): TxFilter {
   return next;
 }
 
-type ListRow = { kind: 'day'; date: string; total: number } | { kind: 'tx'; tx: Transaction };
+type ListRow = { kind: 'day'; date: string; total: number } | { kind: 'tx'; tx: Transaction; first: boolean; last: boolean };
 
 export default function Transactions() {
   const { c } = useTheme();
@@ -65,21 +63,27 @@ export default function Transactions() {
   const base = data.settings.baseCurrency;
 
   const filtered = useMemo(
-    () => filterTransactions(data.transactions, filter, { categories: data.categories, accounts: data.accounts }),
+    () =>
+      filterTransactions(data.transactions, filter, {
+        categories: data.categories,
+        accounts: data.accounts,
+      }),
     [data.transactions, data.categories, data.accounts, filter],
   );
   const rows = useMemo<ListRow[]>(
     () =>
       groupByDay(filtered, ctx).flatMap((group) => [
         { kind: 'day' as const, date: group.date, total: group.total },
-        ...group.items.map((tx) => ({ kind: 'tx' as const, tx })),
+        ...group.items.map((tx, index) => ({ kind: 'tx' as const, tx, first: index === 0, last: index === group.items.length - 1 })),
       ]),
     [filtered, ctx],
   );
   const totals = useMemo(() => totalsOf(filtered, ctx), [filtered, ctx]);
   const reviewCount = useMemo(() => data.transactions.filter((tx) => !tx.reviewed).length, [data.transactions]);
   const quick = quickOf(filter);
-  const extraFilters = [filter.accountIds?.length, quick !== 'uncategorized' && filter.categoryIds?.length, filter.from, filter.to, filter.tags?.length].filter(Boolean).length;
+  const extraFilters = [filter.accountIds?.length, quick !== 'uncategorized' && filter.categoryIds?.length, filter.from, filter.to, filter.tags?.length].filter(
+    Boolean,
+  ).length;
 
   const toggle = (id: string) => {
     const next = new Set(selected);
@@ -114,7 +118,10 @@ export default function Transactions() {
 
   const quickChips: { value: Quick; label: string }[] = [
     { value: 'all', label: 'All' },
-    { value: 'review', label: reviewCount > 0 ? `To review · ${reviewCount}` : 'To review' },
+    {
+      value: 'review',
+      label: reviewCount > 0 ? `To review · ${reviewCount}` : 'To review',
+    },
     { value: 'pending', label: 'Pending' },
     { value: 'uncategorized', label: 'Uncategorized' },
     { value: 'expense', label: 'Expenses' },
@@ -125,8 +132,14 @@ export default function Transactions() {
   const header = (
     <View style={styles.header}>
       <TabHeader title="Transactions">
-        <IconButton icon="download-outline" label="Import from CSV" onPress={() => router.push('/import')} filled testID="open-import" />
-        <IconButton icon="share-outline" label="Export these transactions as CSV" onPress={exportFiltered} filled disabled={filtered.length === 0} testID="export-filtered" />
+        <IconButton icon="download-outline" label="Import from CSV" onPress={() => router.push('/import')} testID="open-import" />
+        <IconButton
+          icon="share-outline"
+          label="Export these transactions as CSV"
+          onPress={exportFiltered}
+          disabled={filtered.length === 0}
+          testID="export-filtered"
+        />
       </TabHeader>
       <Row>
         <View style={styles.flex}>
@@ -151,7 +164,13 @@ export default function Transactions() {
           testID="open-filters"
         />
         {quickChips.map((chip) => (
-          <Chip key={chip.value} label={chip.label} selected={quick === chip.value} onPress={() => setFilter(withQuick(filter, chip.value))} testID={`quick-${chip.value}`} />
+          <Chip
+            key={chip.value}
+            label={chip.label}
+            selected={quick === chip.value}
+            onPress={() => setFilter(withQuick(filter, chip.value))}
+            testID={`quick-${chip.value}`}
+          />
         ))}
       </ScrollView>
       <Row>
@@ -166,7 +185,10 @@ export default function Transactions() {
             kind="ghost"
             small
             onPress={() => {
-              updateTransactions(filtered.map((tx) => tx.id), { reviewed: true });
+              updateTransactions(
+                filtered.map((tx) => tx.id),
+                { reviewed: true },
+              );
               toast('All caught up');
             }}
             testID="review-all"
@@ -193,7 +215,11 @@ export default function Transactions() {
             <EmptyState
               icon="receipt-outline"
               title="No transactions yet"
-              body={data.accounts.length === 0 ? 'Add an account first, then record or import what you spend.' : 'Add one with the + button, or import a CSV export from your bank.'}
+              body={
+                data.accounts.length === 0
+                  ? 'Add an account first, then record or import what you spend.'
+                  : 'Add one with the + button, or import a CSV export from your bank.'
+              }
               action={
                 data.accounts.length === 0 ? (
                   <Button label="Add an account" onPress={() => router.push('/account')} />
@@ -203,27 +229,49 @@ export default function Transactions() {
               }
             />
           ) : (
-            <EmptyState icon="search-outline" title="Nothing matches" body="Try a different search or clear the filters." action={<Button label="Clear filters" kind="secondary" onPress={() => setFilter({})} />} />
+            <EmptyState
+              icon="search-outline"
+              title="Nothing matches"
+              body="Try a different search or clear the filters."
+              action={<Button label="Clear filters" kind="secondary" onPress={() => setFilter({})} />}
+            />
           )
         }
         renderItem={({ item }) =>
           item.kind === 'day' ? (
             <Row style={styles.day}>
               <T variant="label" tone="muted" style={styles.flex}>
-                {formatRelative(item.date, today) === formatDate(item.date) ? formatDate(item.date, 'weekday') : `${formatRelative(item.date, today)} · ${formatDate(item.date)}`}
+                {formatRelative(item.date, today) === formatDate(item.date)
+                  ? formatDate(item.date, 'weekday')
+                  : `${formatRelative(item.date, today)} · ${formatDate(item.date)}`}
               </T>
               <T variant="label" tone="faint" numeric>
                 {formatMoney(item.total, base, { sign: 'always' })}
               </T>
             </Row>
           ) : (
-            <View style={[styles.rowWrap, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <View
+              style={[
+                styles.rowWrap,
+                continuous,
+                { backgroundColor: c.surface, borderBottomColor: c.border },
+                item.first && styles.rowFirst,
+                item.last && styles.rowLast,
+              ]}
+            >
               <TransactionRow
                 tx={item.tx}
                 lookups={lookups}
                 selecting={selecting}
                 selected={selected.has(item.tx.id)}
-                onPress={() => (selecting ? toggle(item.tx.id) : router.push({ pathname: '/transaction', params: { id: item.tx.id } }))}
+                onPress={() =>
+                  selecting
+                    ? toggle(item.tx.id)
+                    : router.push({
+                        pathname: '/transaction',
+                        params: { id: item.tx.id },
+                      })
+                }
                 onLongPress={() => toggle(item.tx.id)}
                 onReview={quick === 'review' ? () => updateTransactions([item.tx.id], { reviewed: true }) : undefined}
               />
@@ -233,24 +281,26 @@ export default function Transactions() {
       />
 
       {selecting ? (
-        <View style={[styles.bulk, { backgroundColor: c.surface, borderColor: c.border }]} testID="bulk-bar">
-          <IconButton icon="close" label="Cancel selection" onPress={clearSelection} />
-          <T variant="label" style={styles.flex}>
-            {selected.size} selected
-          </T>
-          <Button label="Categorize" kind="secondary" small onPress={() => setCategorizing(true)} testID="bulk-categorize" />
-          <Button
-            label="Reviewed"
-            kind="secondary"
-            small
-            onPress={() => {
-              updateTransactions([...selected], { reviewed: true });
-              clearSelection();
-            }}
-            testID="bulk-review"
-          />
-          <IconButton icon="trash-outline" label="Delete selected" tone="negative" onPress={removeSelected} testID="bulk-delete" />
-        </View>
+        <FloatingDock align="stretch">
+          <Glass style={styles.bulk} testID="bulk-bar">
+            <IconButton icon="close" label="Cancel selection" onPress={clearSelection} />
+            <T variant="label" style={styles.flex}>
+              {selected.size} selected
+            </T>
+            <Button label="Categorize" kind="secondary" small onPress={() => setCategorizing(true)} testID="bulk-categorize" />
+            <Button
+              label="Reviewed"
+              kind="secondary"
+              small
+              onPress={() => {
+                updateTransactions([...selected], { reviewed: true });
+                clearSelection();
+              }}
+              testID="bulk-review"
+            />
+            <IconButton icon="trash-outline" label="Delete selected" tone="negative" onPress={removeSelected} testID="bulk-delete" />
+          </Glass>
+        </FloatingDock>
       ) : (
         <Fab onPress={() => router.push('/transaction')} testID="fab-transactions" />
       )}
@@ -267,7 +317,12 @@ export default function Transactions() {
         }}
       />
 
-      <Sheet visible={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filters" footer={<Button label="Show results" onPress={() => setFiltersOpen(false)} testID="apply-filters" />}>
+      <Sheet
+        visible={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        title="Filters"
+        footer={<Button label="Show results" onPress={() => setFiltersOpen(false)} testID="apply-filters" />}
+      >
         <AccountField
           label="Account"
           allowNone="All accounts"
@@ -276,7 +331,12 @@ export default function Transactions() {
         />
         <CategoryFilter
           value={quick === 'uncategorized' ? undefined : filter.categoryIds?.[0]}
-          onChange={(id) => setFilter({ ...withQuick(filter, quick === 'uncategorized' ? 'all' : quick), categoryIds: id ? [id] : undefined })}
+          onChange={(id) =>
+            setFilter({
+              ...withQuick(filter, quick === 'uncategorized' ? 'all' : quick),
+              categoryIds: id ? [id] : undefined,
+            })
+          }
         />
         <Row align="flex-start">
           <View style={styles.flex}>
@@ -291,7 +351,12 @@ export default function Transactions() {
           placeholder="e.g. lisbon-trip"
           autoCapitalize="none"
           value={filter.tags?.[0] ?? ''}
-          onChangeText={(tag) => setFilter({ ...filter, tags: tag.trim() ? [tag.trim().replace(/^#/, '')] : undefined })}
+          onChangeText={(tag) =>
+            setFilter({
+              ...filter,
+              tags: tag.trim() ? [tag.trim().replace(/^#/, '')] : undefined,
+            })
+          }
         />
         <Button label="Clear all filters" kind="ghost" onPress={() => setFilter({})} />
       </Sheet>
@@ -310,26 +375,33 @@ function CategoryFilter({ value, onChange }: { value: string | undefined; onChan
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  list: { paddingBottom: 140, width: '100%', maxWidth: 560, alignSelf: 'center' },
-  header: { paddingHorizontal: space.lg, gap: space.md, paddingBottom: space.sm },
+  list: {
+    paddingBottom: 140 + WEB_TAB_BAR_SPACE,
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+  },
+  header: {
+    paddingHorizontal: space.lg,
+    gap: space.md,
+    paddingBottom: space.sm,
+  },
   chips: { gap: space.sm, paddingRight: space.lg },
-  day: { paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: space.sm },
-  rowWrap: { marginHorizontal: space.lg, borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth },
+  day: {
+    paddingHorizontal: space.lg,
+    paddingTop: space.lg,
+    paddingBottom: space.sm,
+  },
+  // Each day is one rounded group: the first and last rows carry its corners.
+  rowWrap: { marginHorizontal: space.lg, borderBottomWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  rowFirst: { borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg },
+  rowLast: { borderBottomLeftRadius: radius.lg, borderBottomRightRadius: radius.lg, borderBottomWidth: 0 },
   bulk: {
-    position: 'absolute',
-    left: space.md,
-    right: space.md,
-    bottom: space.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
     padding: space.sm,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    borderRadius: 30,
+    overflow: 'hidden',
   },
 });

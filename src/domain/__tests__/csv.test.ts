@@ -2,7 +2,10 @@ import { buildImportRows, detectDecimal, detectDelimiter, inferMapping, inferOpt
 
 describe('parseCSV', () => {
   it('parses plain rows', () => {
-    expect(parseCSV('a,b,c\n1,2,3')).toEqual([['a', 'b', 'c'], ['1', '2', '3']]);
+    expect(parseCSV('a,b,c\n1,2,3')).toEqual([
+      ['a', 'b', 'c'],
+      ['1', '2', '3'],
+    ]);
   });
 
   it('handles quotes, escaped quotes, embedded delimiters and line breaks', () => {
@@ -16,12 +19,22 @@ describe('parseCSV', () => {
   });
 
   it('copes with CRLF, a byte-order mark, blank lines and a trailing newline', () => {
-    expect(parseCSV('﻿a,b\r\n1,2\r\n\r\n3,4\r\n')).toEqual([['a', 'b'], ['1', '2'], ['3', '4']]);
-    expect(parseCSV('a,b\r1,2')).toEqual([['a', 'b'], ['1', '2']]);
+    expect(parseCSV('﻿a,b\r\n1,2\r\n\r\n3,4\r\n')).toEqual([
+      ['a', 'b'],
+      ['1', '2'],
+      ['3', '4'],
+    ]);
+    expect(parseCSV('a,b\r1,2')).toEqual([
+      ['a', 'b'],
+      ['1', '2'],
+    ]);
   });
 
   it('keeps empty cells and trims whitespace', () => {
-    expect(parseCSV('a,,c\n , x ,')).toEqual([['a', '', 'c'], ['', 'x', '']]);
+    expect(parseCSV('a,,c\n , x ,')).toEqual([
+      ['a', '', 'c'],
+      ['', 'x', ''],
+    ]);
   });
 
   it('detects semicolon, tab and pipe delimiters', () => {
@@ -29,7 +42,10 @@ describe('parseCSV', () => {
     expect(detectDelimiter('a\tb\tc\n1\t2\t3')).toBe('\t');
     expect(detectDelimiter('a|b\n1|2')).toBe('|');
     expect(detectDelimiter('Datum;Betrag\n01.02.2026;-12,50')).toBe(';');
-    expect(parseCSV('Datum;Betrag\n01.02.2026;-12,50')).toEqual([['Datum', 'Betrag'], ['01.02.2026', '-12,50']]);
+    expect(parseCSV('Datum;Betrag\n01.02.2026;-12,50')).toEqual([
+      ['Datum', 'Betrag'],
+      ['01.02.2026', '-12,50'],
+    ]);
     expect(detectDelimiter('just one column')).toBe(',');
   });
 
@@ -113,8 +129,14 @@ describe('buildImportRows', () => {
     expect(result.errors).toEqual([]);
     expect(result.rows).toEqual([
       {
-        line: 2, date: '2026-01-02', amount: -2380, payee: 'Luna Pizzeria', rawPayee: 'SQ *LUNA PIZZERIA 0412',
-        categoryName: 'Dining', notes: 'with Sam', currency: 'EUR',
+        line: 2,
+        date: '2026-01-02',
+        amount: -2380,
+        payee: 'Luna Pizzeria',
+        rawPayee: 'SQ *LUNA PIZZERIA 0412',
+        categoryName: 'Dining',
+        notes: 'with Sam',
+        currency: 'EUR',
       },
     ]);
   });
@@ -174,7 +196,10 @@ describe('toCSV', () => {
   });
 
   it('round-trips through the parser', () => {
-    const rows = [['Date', 'Payee', 'Notes'], ['2026-01-02', 'Smith, Jones', 'He said "ok"\nthen left']];
+    const rows = [
+      ['Date', 'Payee', 'Notes'],
+      ['2026-01-02', 'Smith, Jones', 'He said "ok"\nthen left'],
+    ];
     expect(parseCSV(toCSV(rows))).toEqual(rows);
   });
 

@@ -10,11 +10,7 @@ export interface BalanceOptions {
 }
 
 /** Balance of every account, in its own currency. */
-export function accountBalances(
-  accounts: readonly Account[],
-  transactions: readonly Transaction[],
-  options: BalanceOptions = {},
-): Map<ID, number> {
+export function accountBalances(accounts: readonly Account[], transactions: readonly Transaction[], options: BalanceOptions = {}): Map<ID, number> {
   const { asOf, includePending = true } = options;
   const balances = new Map<ID, number>();
   for (const account of accounts) {
@@ -76,12 +72,14 @@ export function netWorthHistory(
   const tracked = accounts.filter((account) => !account.archived && account.includeInNetWorth);
   if (tracked.length === 0) return [];
   const firstOpened = tracked.reduce((earliest, account) => (account.openingDate < earliest ? account.openingDate : earliest), tracked[0].openingDate);
-  return months.filter((month) => monthEnd(month) >= firstOpened).map((month) => {
-    const end = monthEnd(month);
-    const date = end > today ? today : end;
-    const balances = accountBalances(accounts, transactions, { asOf: date });
-    return { month, date, ...netWorth(accounts, balances, ctx) };
-  });
+  return months
+    .filter((month) => monthEnd(month) >= firstOpened)
+    .map((month) => {
+      const end = monthEnd(month);
+      const date = end > today ? today : end;
+      const balances = accountBalances(accounts, transactions, { asOf: date });
+      return { month, date, ...netWorth(accounts, balances, ctx) };
+    });
 }
 
 /**

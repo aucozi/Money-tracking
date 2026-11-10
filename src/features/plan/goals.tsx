@@ -18,10 +18,7 @@ export function Goals() {
   const today = useToday();
   const base = data.settings.baseCurrency;
   const goals = useMemo(
-    () =>
-      data.goals
-        .filter((goal) => !goal.archived)
-        .map((goal) => ({ goal, progress: goalProgress(goal, data.accounts, balances, ctx, today) })),
+    () => data.goals.filter((goal) => !goal.archived).map((goal) => ({ goal, progress: goalProgress(goal, data.accounts, balances, ctx, today) })),
     [data.goals, data.accounts, balances, ctx, today],
   );
   const money = (amount: number) => formatMoney(amount, base, { whole: true });
@@ -67,7 +64,13 @@ export function Goals() {
                     <T numeric variant="caption" tone="faint">
                       of {money(progress.target)}
                     </T>
-                    {progress.state === 'behind' ? <Pill label="Behind" tone="warning" /> : progress.state === 'on-track' ? <Pill label="On track" tone="positive" /> : progress.state === 'done' ? <Pill label="Done" tone="positive" /> : null}
+                    {progress.state === 'behind' ? (
+                      <Pill label="Behind" tone="warning" />
+                    ) : progress.state === 'on-track' ? (
+                      <Pill label="On track" tone="positive" />
+                    ) : progress.state === 'done' ? (
+                      <Pill label="Done" tone="positive" />
+                    ) : null}
                   </View>
                 }
                 onPress={() => router.push({ pathname: '/goal', params: { id: goal.id } })}

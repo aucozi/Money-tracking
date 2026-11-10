@@ -141,7 +141,18 @@ export function formatRelative(date: ISODate, today: ISODate): string {
 export type DateOrder = 'YMD' | 'DMY' | 'MDY';
 
 const MONTH_WORDS: Record<string, number> = {
-  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
 };
 
 /**
@@ -156,8 +167,7 @@ export function parseFlexibleDate(input: string, order: DateOrder = 'MDY'): ISOD
   const compact = /^(\d{4})(\d{2})(\d{2})$/.exec(text);
   if (compact) return validated(Number(compact[1]), Number(compact[2]), Number(compact[3]));
 
-  const worded =
-    /^(\d{1,2})[\s.-]+([A-Za-z]{3,})\.?[\s,.-]+(\d{2,4})/.exec(text) ?? null;
+  const worded = /^(\d{1,2})[\s.-]+([A-Za-z]{3,})\.?[\s,.-]+(\d{2,4})/.exec(text) ?? null;
   if (worded) {
     const month = MONTH_WORDS[worded[2].slice(0, 3).toLowerCase()];
     if (month) return validated(fullYear(Number(worded[3])), month, Number(worded[1]));

@@ -86,9 +86,7 @@ export function deleteAccount(data: AppData, id: ID): AppData {
       .map((tx) => (tx.transferPeerId && removed.has(tx.transferPeerId) ? { ...tx, transferPeerId: undefined } : tx)),
     recurrings: data.recurrings.map((item) => (item.accountId === id ? { ...item, accountId: undefined } : item)),
     goals: data.goals.map((goal) => (goal.accountId === id ? { ...goal, accountId: undefined } : goal)),
-    rules: data.rules.map((rule) =>
-      rule.conditions.accountId === id ? { ...rule, conditions: { ...rule.conditions, accountId: undefined } } : rule,
-    ),
+    rules: data.rules.map((rule) => (rule.conditions.accountId === id ? { ...rule, conditions: { ...rule.conditions, accountId: undefined } } : rule)),
     holdings: data.holdings.filter((holding) => holding.accountId !== id),
     connections: data.connections.map((connection) => ({
       ...connection,
@@ -137,11 +135,7 @@ export function addCategory(data: AppData, input: NewCategory): { data: AppData;
   return { data: { ...data, categories: [...data.categories, category] }, id };
 }
 
-export function updateCategory(
-  data: AppData,
-  id: ID,
-  patch: Partial<Pick<Category, 'name' | 'icon' | 'color' | 'archived' | 'groupId' | 'sort'>>,
-): AppData {
+export function updateCategory(data: AppData, id: ID, patch: Partial<Pick<Category, 'name' | 'icon' | 'color' | 'archived' | 'groupId' | 'sort'>>): AppData {
   let next = patch as Partial<Category>;
   if (patch.groupId) {
     const group = data.categoryGroups.find((item) => item.id === patch.groupId);
@@ -239,11 +233,7 @@ export function build(input: NewTransaction): Transaction {
   };
 }
 
-export function addTransaction(
-  data: AppData,
-  input: NewTransaction,
-  options: { automate?: boolean } = {},
-): { data: AppData; id: ID } {
+export function addTransaction(data: AppData, input: NewTransaction, options: { automate?: boolean } = {}): { data: AppData; id: ID } {
   let tx = build(input);
   if (options.automate ?? true) tx = automate(data, tx);
   return { data: { ...data, transactions: [...data.transactions, tx] }, id: tx.id };
@@ -269,9 +259,7 @@ export function addTransfer(data: AppData, input: NewTransfer): { data: AppData;
   if (!from || !to || from.id === to.id) return { data, id: '' };
   const amount = Math.abs(input.amount);
   const arriving =
-    input.toAmount !== undefined
-      ? Math.abs(input.toAmount)
-      : convert(amount, from.currency, to.currency, data.settings.baseCurrency, data.settings.rates);
+    input.toAmount !== undefined ? Math.abs(input.toAmount) : convert(amount, from.currency, to.currency, data.settings.baseCurrency, data.settings.rates);
   const shared = {
     date: input.date,
     kind: 'transfer' as const,
@@ -318,11 +306,7 @@ export function updateTransaction(data: AppData, id: ID, patch: Partial<Omit<Tra
   return { ...data, transactions };
 }
 
-export function updateTransactions(
-  data: AppData,
-  ids: readonly ID[],
-  patch: Partial<Pick<Transaction, 'categoryId' | 'reviewed' | 'status'>>,
-): AppData {
+export function updateTransactions(data: AppData, ids: readonly ID[], patch: Partial<Pick<Transaction, 'categoryId' | 'reviewed' | 'status'>>): AppData {
   const selected = new Set(ids);
   return {
     ...data,
@@ -356,17 +340,10 @@ export interface ImportOutcome {
  * says otherwise. With `keepBalance` the rows are treated as history that the
  * account's balance already reflects, so the balance does not move.
  */
-export function importTransactions(
-  data: AppData,
-  accountId: ID,
-  rows: readonly ImportRow[],
-  options: { keepBalance: boolean },
-): ImportOutcome {
+export function importTransactions(data: AppData, accountId: ID, rows: readonly ImportRow[], options: { keepBalance: boolean }): ImportOutcome {
   const account = data.accounts.find((item) => item.id === accountId);
   if (!account || rows.length === 0) return { data, imported: 0, ids: [] };
-  const categoryByName = new Map(
-    data.categories.filter((category) => !category.archived).map((category) => [category.name.toLowerCase(), category.id]),
-  );
+  const categoryByName = new Map(data.categories.filter((category) => !category.archived).map((category) => [category.name.toLowerCase(), category.id]));
 
   const added: Transaction[] = [];
   let total = 0;
@@ -433,9 +410,7 @@ export function skipOccurrence(data: AppData, id: ID, date: ISODate, skip = true
 /** Record the payment for one due date. Returns the data unchanged if there is no account to pay from. */
 export function markPaid(data: AppData, id: ID, due: ISODate, today: ISODate, accountId?: ID): { data: AppData; id: ID } {
   const recurring = data.recurrings.find((item) => item.id === id);
-  const account =
-    data.accounts.find((item) => item.id === (accountId ?? recurring?.accountId)) ??
-    data.accounts.find((item) => !item.archived);
+  const account = data.accounts.find((item) => item.id === (accountId ?? recurring?.accountId)) ?? data.accounts.find((item) => !item.archived);
   if (!recurring || !account) return { data, id: '' };
   // Dated today when that still counts for this due date, otherwise on the due date itself.
   const date = Math.abs(diffDays(due, today)) <= matchWindow(recurring.frequency) ? today : due;
@@ -455,8 +430,7 @@ export function markPaid(data: AppData, id: ID, due: ISODate, today: ISODate, ac
 
 // ── Goals ───────────────────────────────────────────────────────────────────
 
-export type NewGoal = Pick<Goal, 'name' | 'targetAmount' | 'createdDate'> &
-  Partial<Pick<Goal, 'icon' | 'color' | 'targetDate' | 'accountId'>>;
+export type NewGoal = Pick<Goal, 'name' | 'targetAmount' | 'createdDate'> & Partial<Pick<Goal, 'icon' | 'color' | 'targetDate' | 'accountId'>>;
 
 export function addGoal(data: AppData, input: NewGoal): { data: AppData; id: ID } {
   const id = newId('goal_');

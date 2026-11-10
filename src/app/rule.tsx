@@ -84,7 +84,12 @@ export default function RuleScreen() {
 
   const remove = async () => {
     if (!existing) return;
-    const ok = await confirm({ title: 'Delete this rule?', message: 'Transactions it already changed stay as they are.', confirmLabel: 'Delete', destructive: true });
+    const ok = await confirm({
+      title: 'Delete this rule?',
+      message: 'Transactions it already changed stay as they are.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
     if (!ok) return;
     store.deleteRule(existing.id);
     toast('Rule deleted');
@@ -116,7 +121,8 @@ export default function RuleScreen() {
             testID="save-apply-button"
           />
         </View>
-      }>
+      }
+    >
       <SectionTitle>When a transaction…</SectionTitle>
       <Field
         label="Payee text"
@@ -159,10 +165,29 @@ export default function RuleScreen() {
 
       <SectionTitle>…then</SectionTitle>
       {!markTransfer ? <CategoryField label="Set the category to" value={categoryId} onChange={setCategoryId} testID="rule-category" /> : null}
-      <Field label="Rename the payee to" value={renameTo} onChangeText={setRenameTo} placeholder="Leave empty to keep the name" autoCapitalize="words" testID="rule-rename" />
+      <Field
+        label="Rename the payee to"
+        value={renameTo}
+        onChangeText={setRenameTo}
+        placeholder="Leave empty to keep the name"
+        autoCapitalize="words"
+        testID="rule-rename"
+      />
       <Field label="Add tags" value={tags} onChangeText={setTags} placeholder="e.g. work, reimbursable" autoCapitalize="none" testID="rule-tags" />
-      <ToggleRow label="Mark as a transfer" hint="Leaves it out of spending and income, e.g. card repayments." value={markTransfer} onChange={setMarkTransfer} testID="rule-transfer" />
-      <ToggleRow label="Mark as reviewed" hint="Skips the review inbox for transactions you never need to check." value={markReviewed} onChange={setMarkReviewed} testID="rule-reviewed" />
+      <ToggleRow
+        label="Mark as a transfer"
+        hint="Leaves it out of spending and income, e.g. card repayments."
+        value={markTransfer}
+        onChange={setMarkTransfer}
+        testID="rule-transfer"
+      />
+      <ToggleRow
+        label="Mark as reviewed"
+        hint="Skips the review inbox for transactions you never need to check."
+        value={markReviewed}
+        onChange={setMarkReviewed}
+        testID="rule-reviewed"
+      />
 
       <T variant="label" tone="muted" testID="rule-matches">
         {ruleHasConditions(draft)

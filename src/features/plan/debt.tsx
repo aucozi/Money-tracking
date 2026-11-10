@@ -31,7 +31,11 @@ export function DebtPlanner() {
   if (debts.length === 0) {
     return (
       <Card>
-        <EmptyState icon="happy-outline" title="No debt to plan for" body="Credit cards and loans that carry a balance show up here, with a plan for clearing them." />
+        <EmptyState
+          icon="happy-outline"
+          title="No debt to plan for"
+          body="Credit cards and loans that carry a balance show up here, with a plan for clearing them."
+        />
       </Card>
     );
   }
@@ -58,17 +62,9 @@ export function DebtPlanner() {
           testID="debt-strategy"
         />
         <T variant="caption" tone="faint">
-          {strategy === 'avalanche'
-            ? 'Costs the least interest overall.'
-            : 'Clears whole debts soonest, which some people find easier to stick with.'}
+          {strategy === 'avalanche' ? 'Costs the least interest overall.' : 'Clears whole debts soonest, which some people find easier to stick with.'}
         </T>
-        <AmountField
-          label="Extra each month, on top of the minimums"
-          value={extra}
-          currency={base}
-          onChange={setExtra}
-          testID="debt-extra"
-        />
+        <AmountField label="Extra each month, on top of the minimums" value={extra} currency={base} onChange={setExtra} testID="debt-extra" />
       </Card>
 
       {plan.feasible ? (
@@ -103,8 +99,9 @@ export function DebtPlanner() {
           />
           {extraSaves ? (
             <T variant="label" tone="positive">
-              The extra {money(extra ?? 0)} a month gets you there {withoutExtra.months - plan.months} {withoutExtra.months - plan.months === 1 ? 'month' : 'months'} sooner and
-              saves {money(withoutExtra.totalInterest - plan.totalInterest)} in interest.
+              The extra {money(extra ?? 0)} a month gets you there {withoutExtra.months - plan.months}{' '}
+              {withoutExtra.months - plan.months === 1 ? 'month' : 'months'} sooner and saves {money(withoutExtra.totalInterest - plan.totalInterest)} in
+              interest.
             </T>
           ) : null}
           {saved !== 0 ? (
@@ -133,18 +130,19 @@ export function DebtPlanner() {
 
       <SectionTitle>{plan.feasible ? 'Order of attack' : 'Your debts'}</SectionTitle>
       <Card padded={false}>
-        {(plan.feasible ? plan.order.map((step) => ({ step, debt: debts.find((debt) => debt.id === step.id)! })) : debts.map((debt) => ({ step: undefined, debt }))).map(
-          ({ step, debt }, index) => (
-            <ListItem
-              key={debt.id}
-              title={`${plan.feasible ? `${index + 1}. ` : ''}${debt.name}`}
-              subtitle={`${debt.apr}% APR · ${money(debt.minPayment)} minimum${step ? ` · cleared ${monthOf(step.month)}` : ''}`}
-              leading={<Glyph icon="💳" />}
-              trailing={<Money amount={debt.balance} currency={base} weight="600" />}
-              onPress={() => router.push({ pathname: '/account', params: { id: debt.id } })}
-            />
-          ),
-        )}
+        {(plan.feasible
+          ? plan.order.map((step) => ({ step, debt: debts.find((debt) => debt.id === step.id)! }))
+          : debts.map((debt) => ({ step: undefined, debt }))
+        ).map(({ step, debt }, index) => (
+          <ListItem
+            key={debt.id}
+            title={`${plan.feasible ? `${index + 1}. ` : ''}${debt.name}`}
+            subtitle={`${debt.apr}% APR · ${money(debt.minPayment)} minimum${step ? ` · cleared ${monthOf(step.month)}` : ''}`}
+            leading={<Glyph icon="💳" />}
+            trailing={<Money amount={debt.balance} currency={base} weight="600" />}
+            onPress={() => router.push({ pathname: '/account', params: { id: debt.id } })}
+          />
+        ))}
       </Card>
     </>
   );

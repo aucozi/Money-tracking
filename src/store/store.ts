@@ -80,7 +80,7 @@ export const useStore = create<Store>((set, get) => {
   /** Apply a pure change to the dataset. */
   const change = (fn: (data: AppData) => AppData) => set((state) => ({ data: fn(state.data) }));
   /** Apply a change that also produces a value (usually the new id). */
-  const produce = <T,>(fn: (data: AppData) => { data: AppData } & T): T => {
+  const produce = <T>(fn: (data: AppData) => { data: AppData } & T): T => {
     const result = fn(get().data);
     set({ data: result.data });
     return result;
@@ -135,8 +135,7 @@ export const useStore = create<Store>((set, get) => {
     updateTransaction: (id, patch) => change((data) => ops.updateTransaction(data, id, patch)),
     updateTransactions: (ids, patch) => change((data) => ops.updateTransactions(data, ids, patch)),
     deleteTransactions: (ids) => change((data) => ops.deleteTransactions(data, ids)),
-    importTransactions: (accountId, rows, options) =>
-      produce((data) => ops.importTransactions(data, accountId, rows, options)).imported,
+    importTransactions: (accountId, rows, options) => produce((data) => ops.importTransactions(data, accountId, rows, options)).imported,
 
     addRecurring: (input) => produce((data) => ops.addRecurring(data, input)).id,
     updateRecurring: (id, patch) => change((data) => ops.updateRecurring(data, id, patch)),

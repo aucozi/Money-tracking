@@ -192,9 +192,7 @@ export function allocate(total: number, weights: readonly number[]): number[] {
   const exact = weights.map((weight) => (absolute * weight) / weightSum);
   const parts = exact.map(Math.floor);
   let remainder = absolute - sum(parts);
-  const order = exact
-    .map((value, index) => ({ index, fraction: value - Math.floor(value) }))
-    .sort((a, b) => b.fraction - a.fraction || a.index - b.index);
+  const order = exact.map((value, index) => ({ index, fraction: value - Math.floor(value) })).sort((a, b) => b.fraction - a.fraction || a.index - b.index);
   for (let i = 0; remainder > 0; i = (i + 1) % order.length) {
     parts[order[i].index] += 1;
     remainder -= 1;
@@ -216,13 +214,7 @@ export function hasRate(currency: CurrencyCode, base: CurrencyCode, rates: Rates
 }
 
 /** Convert between any two currencies through the base currency. */
-export function convert(
-  minor: number,
-  from: CurrencyCode,
-  to: CurrencyCode,
-  base: CurrencyCode,
-  rates: Rates,
-): number {
+export function convert(minor: number, from: CurrencyCode, to: CurrencyCode, base: CurrencyCode, rates: Rates): number {
   if (from === to) return minor;
   const inBase = fromMinor(minor, from) * rateFor(from, base, rates);
   return toMinor(inBase / rateFor(to, base, rates), to);

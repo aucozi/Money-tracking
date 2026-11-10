@@ -14,10 +14,22 @@ const today = '2026-11-10';
 const options = { today, since: '2026-10-01', now: Date.UTC(2026, 10, 10, 9) };
 
 const remoteTx = (overrides: Partial<RemoteTransaction> = {}): RemoteTransaction => ({
-  remoteId: 't1', date: '2026-11-08', amount: -1250, description: 'CORNER BAKERY', pending: false, ...overrides,
+  remoteId: 't1',
+  date: '2026-11-08',
+  amount: -1250,
+  description: 'CORNER BAKERY',
+  pending: false,
+  ...overrides,
 });
 const remoteAccount = (overrides: Partial<RemoteAccount> = {}): RemoteAccount => ({
-  remoteId: 'chk', name: 'Everyday', institution: 'My Bank', currency: 'USD', balance: 100000, balanceDate: today, transactions: [], ...overrides,
+  remoteId: 'chk',
+  name: 'Everyday',
+  institution: 'My Bank',
+  currency: 'USD',
+  balance: 100000,
+  balanceDate: today,
+  transactions: [],
+  ...overrides,
 });
 
 /** A dataset with one connection whose "chk" account is linked to a new local account. */
@@ -35,7 +47,10 @@ describe('connecting', () => {
   it('records what the connection offers without importing anything yet', () => {
     const { data, id } = addConnection(emptyData('USD'), { name: ' My Bank ', remote: [remoteAccount(), remoteAccount({ remoteId: 'sav', name: 'Savings' })] });
     expect(data.connections[0]).toEqual({
-      id, provider: 'simplefin', name: 'My Bank', links: {},
+      id,
+      provider: 'simplefin',
+      name: 'My Bank',
+      links: {},
       remoteAccounts: [
         { id: 'chk', name: 'Everyday', institution: 'My Bank', currency: 'USD' },
         { id: 'sav', name: 'Savings', institution: 'My Bank', currency: 'USD' },
@@ -100,7 +115,14 @@ describe('connecting', () => {
 describe('applySync', () => {
   it('brings in new transactions unreviewed, with readable names and the bank text kept', () => {
     const { data, accountId } = connected();
-    const result = sync(data, [remoteAccount({ transactions: [remoteTx({ description: 'SQ *CORNER BAKERY 0412' }), remoteTx({ remoteId: 't2', amount: 250000, description: 'Payroll', payee: 'Employer Inc', memo: 'ACH EMPLOYER INC PAYROLL' })] })]);
+    const result = sync(data, [
+      remoteAccount({
+        transactions: [
+          remoteTx({ description: 'SQ *CORNER BAKERY 0412' }),
+          remoteTx({ remoteId: 't2', amount: 250000, description: 'Payroll', payee: 'Employer Inc', memo: 'ACH EMPLOYER INC PAYROLL' }),
+        ],
+      }),
+    ]);
     expect(result.summary).toMatchObject({ added: 2, updated: 0, matched: 0, removed: 0, accounts: 1, problems: [] });
     expect(result.data.transactions.map((tx) => [tx.payee, tx.rawPayee, tx.amount, tx.reviewed, tx.status, tx.remoteId, tx.accountId])).toEqual([
       ['Corner Bakery', 'SQ *CORNER BAKERY 0412', -1250, false, 'cleared', 'conn/chk/t1', accountId],
@@ -127,8 +149,21 @@ describe('applySync', () => {
 
   it('applies rules and bill matching to what arrives', () => {
     let { data } = connected();
-    data = ops.addRule(data, { enabled: true, conditions: { payeeMatch: 'contains', payeeText: 'bakery' }, actions: { categoryId: 'cat_dining', markReviewed: true } }).data;
-    data = ops.addRecurring(data, { name: 'StreamBox', amount: -1399, currency: 'USD', categoryId: 'cat_subscriptions', frequency: 'monthly', anchorDate: '2026-11-08', matchText: 'streambox', tolerancePct: 10 }).data;
+    data = ops.addRule(data, {
+      enabled: true,
+      conditions: { payeeMatch: 'contains', payeeText: 'bakery' },
+      actions: { categoryId: 'cat_dining', markReviewed: true },
+    }).data;
+    data = ops.addRecurring(data, {
+      name: 'StreamBox',
+      amount: -1399,
+      currency: 'USD',
+      categoryId: 'cat_subscriptions',
+      frequency: 'monthly',
+      anchorDate: '2026-11-08',
+      matchText: 'streambox',
+      tolerancePct: 10,
+    }).data;
     const result = sync(data, [remoteAccount({ transactions: [remoteTx(), remoteTx({ remoteId: 't2', amount: -1399, description: 'STREAMBOX.COM' })] })]);
     expect(result.data.transactions[0]).toMatchObject({ categoryId: 'cat_dining', reviewed: true });
     expect(result.data.transactions[1]).toMatchObject({ categoryId: 'cat_subscriptions', recurringId: data.recurrings[0].id });
@@ -148,10 +183,22 @@ describe('applySync', () => {
     const { data } = connected();
     const first = sync(data, [remoteAccount({ transactions: [remoteTx({ pending: true })] })]);
     const id = first.data.transactions[0].id;
-    const edited = ops.updateTransaction(first.data, id, { payee: 'Bakery on the corner', categoryId: 'cat_dining', notes: 'Croissants', tags: ['treat'], reviewed: true });
+    const edited = ops.updateTransaction(first.data, id, {
+      payee: 'Bakery on the corner',
+      categoryId: 'cat_dining',
+      notes: 'Croissants',
+      tags: ['treat'],
+      reviewed: true,
+    });
     const second = sync(edited, [remoteAccount({ transactions: [remoteTx({ amount: -1300 })] })]);
     expect(second.data.transactions[0]).toMatchObject({
-      payee: 'Bakery on the corner', categoryId: 'cat_dining', notes: 'Croissants', tags: ['treat'], reviewed: true, amount: -1300, status: 'cleared',
+      payee: 'Bakery on the corner',
+      categoryId: 'cat_dining',
+      notes: 'Croissants',
+      tags: ['treat'],
+      reviewed: true,
+      amount: -1300,
+      status: 'cleared',
     });
   });
 
@@ -159,7 +206,9 @@ describe('applySync', () => {
     const { data } = connected();
     const first = sync(data, [remoteAccount({ transactions: [remoteTx({ remoteId: 'pend-1', amount: -5000, description: 'LUNA PIZZERIA', pending: true })] })]);
     const categorised = ops.updateTransaction(first.data, first.data.transactions[0].id, { categoryId: 'cat_dining' });
-    const second = sync(categorised, [remoteAccount({ transactions: [remoteTx({ remoteId: 'post-9', amount: -6000, date: '2026-11-10', description: 'LUNA PIZZERIA 0412' })] })]);
+    const second = sync(categorised, [
+      remoteAccount({ transactions: [remoteTx({ remoteId: 'post-9', amount: -6000, date: '2026-11-10', description: 'LUNA PIZZERIA 0412' })] }),
+    ]);
     expect(second.summary).toMatchObject({ added: 0, updated: 1, removed: 0 });
     expect(second.data.transactions).toHaveLength(1);
     expect(second.data.transactions[0]).toMatchObject({ remoteId: 'conn/chk/post-9', amount: -6000, status: 'cleared', categoryId: 'cat_dining' });
@@ -167,7 +216,9 @@ describe('applySync', () => {
 
   it('removes a pending charge the bank dropped, but only within the period it reported on', () => {
     const { data } = connected();
-    const first = sync(data, [remoteAccount({ transactions: [remoteTx({ remoteId: 'hold', amount: -10000, description: 'HOTEL DEPOSIT', pending: true }), remoteTx()] })]);
+    const first = sync(data, [
+      remoteAccount({ transactions: [remoteTx({ remoteId: 'hold', amount: -10000, description: 'HOTEL DEPOSIT', pending: true }), remoteTx()] }),
+    ]);
     const second = sync(first.data, [remoteAccount({ transactions: [remoteTx()] })]);
     expect(second.summary.removed).toBe(1);
     expect(second.data.transactions.map((tx) => tx.payee)).toEqual(['Corner Bakery']);
@@ -191,7 +242,12 @@ describe('applySync', () => {
     expect(result.summary).toMatchObject({ added: 0, matched: 1 });
     expect(result.data.transactions).toHaveLength(1);
     expect(result.data.transactions[0]).toMatchObject({
-      payee: 'Corner bakery', categoryId: 'cat_dining', date: '2026-11-08', status: 'cleared', remoteId: 'conn/chk/t1', rawPayee: 'SQ *CORNER BAKERY 0412',
+      payee: 'Corner bakery',
+      categoryId: 'cat_dining',
+      date: '2026-11-08',
+      status: 'cleared',
+      remoteId: 'conn/chk/t1',
+      rawPayee: 'SQ *CORNER BAKERY 0412',
     });
   });
 
@@ -246,7 +302,17 @@ describe('applySync', () => {
     expect(balance(first.data, accountId)).toBe(250000);
 
     const id = first.data.holdings[1].id;
-    const second = sync(first.data, [remoteAccount({ remoteId: 'inv', name: 'Brokerage', balance: 265000, holdings: [{ ...holding, shares: 11, marketValue: 215000 }, { ...holding, remoteId: 'h2', name: 'Index fund', symbol: 'VTI', marketValue: 0 }] })]);
+    const second = sync(first.data, [
+      remoteAccount({
+        remoteId: 'inv',
+        name: 'Brokerage',
+        balance: 265000,
+        holdings: [
+          { ...holding, shares: 11, marketValue: 215000 },
+          { ...holding, remoteId: 'h2', name: 'Index fund', symbol: 'VTI', marketValue: 0 },
+        ],
+      }),
+    ]);
     expect(second.data.holdings.map((item) => [item.name, item.shares, item.marketValue])).toEqual([
       ['Company stock', 5, 50000],
       ['Shares of Apple', 11, 215000],
@@ -265,7 +331,13 @@ describe('applySync', () => {
   it('imports the live demo bank end to end', () => {
     const snapshot = parseAccountSet(demo, today);
     let data = addConnection(emptyData('USD'), { id: 'conn', name: 'SimpleFIN Demo', remote: snapshot.accounts }).data;
-    data = linkAccounts(data, 'conn', Object.fromEntries(snapshot.accounts.map((account) => [account.remoteId, { kind: 'new' as const }])), snapshot.accounts, today);
+    data = linkAccounts(
+      data,
+      'conn',
+      Object.fromEntries(snapshot.accounts.map((account) => [account.remoteId, { kind: 'new' as const }])),
+      snapshot.accounts,
+      today,
+    );
     const result = sync(data, snapshot.accounts);
     expect(result.summary).toMatchObject({ added: 6, accounts: 3, problems: [] });
     const byName = new Map(result.data.accounts.map((account) => [account.name, account]));
@@ -294,7 +366,16 @@ describe('holdings kept by hand', () => {
 
   it('makes the account worth what its holdings are worth', () => {
     let { data, accountId } = withBrokerage();
-    const fund = ops.addHolding(data, { accountId, name: ' World fund ', symbol: ' vwrl ', shares: 12.5, marketValue: 150000, costBasis: 120000, currency: 'USD', updatedAt: today });
+    const fund = ops.addHolding(data, {
+      accountId,
+      name: ' World fund ',
+      symbol: ' vwrl ',
+      shares: 12.5,
+      marketValue: 150000,
+      costBasis: 120000,
+      currency: 'USD',
+      updatedAt: today,
+    });
     data = fund.data;
     expect(data.holdings[0]).toMatchObject({ name: 'World fund', symbol: 'VWRL' });
     expect(balance(data, accountId)).toBe(150000);
@@ -326,7 +407,16 @@ describe('holdings kept by hand', () => {
 describe('portfolio', () => {
   const data = { ...emptyData('USD'), settings: { ...emptyData('USD').settings, rates: { EUR: 1.1 } } };
   const ctx = makeCtx(data);
-  const holding = (overrides: object) => ({ id: 'h', accountId: 'a', name: 'Fund', shares: 10, marketValue: 100000, currency: 'USD', updatedAt: today, ...overrides });
+  const holding = (overrides: object) => ({
+    id: 'h',
+    accountId: 'a',
+    name: 'Fund',
+    shares: 10,
+    marketValue: 100000,
+    currency: 'USD',
+    updatedAt: today,
+    ...overrides,
+  });
 
   it('values holdings in the main currency, with gain where the cost is known', () => {
     const result = portfolio(

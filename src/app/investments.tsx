@@ -32,7 +32,11 @@ export default function InvestmentsScreen() {
         title={holding.symbol ? `${holding.symbol} · ${holding.name}` : holding.name}
         subtitle={`${shares(holding.shares)} ${holding.shares === 1 ? 'share' : 'shares'}${price !== null ? ` · ${formatMoney(price, holding.currency)} each` : ''}`}
         accessibilityLabel={`${holding.name}, worth ${formatMoney(view.value, base)}${view.gain !== null ? `, ${view.gain >= 0 ? 'up' : 'down'} ${formatMoney(Math.abs(view.gain), base)}` : ''}`}
-        leading={<View style={[styles.dot, { backgroundColor: colorOf.get(holding.id) ?? c.accent }]} />}
+        leading={
+          <View style={styles.dotWell}>
+            <View style={[styles.dot, { backgroundColor: colorOf.get(holding.id) ?? c.accent }]} />
+          </View>
+        }
         trailing={
           <View style={styles.right}>
             <Money amount={view.value} currency={base} weight="600" />
@@ -81,8 +85,12 @@ export default function InvestmentsScreen() {
           <View
             accessible
             accessibilityRole="image"
-            accessibilityLabel={`Allocation: ${all.holdings.slice(0, 5).map((view) => `${view.holding.name} ${Math.round(view.weight * 100)} percent`).join(', ')}`}
-            style={[styles.allocation, { backgroundColor: c.surfaceAlt }]}>
+            accessibilityLabel={`Allocation: ${all.holdings
+              .slice(0, 5)
+              .map((view) => `${view.holding.name} ${Math.round(view.weight * 100)} percent`)
+              .join(', ')}`}
+            style={[styles.allocation, { backgroundColor: c.surfaceAlt }]}
+          >
             {all.holdings.map((view) => (
               <View key={view.holding.id} style={{ flex: Math.max(view.weight, 0.004), backgroundColor: colorOf.get(view.holding.id) }} />
             ))}
@@ -119,7 +127,8 @@ export default function InvestmentsScreen() {
                     {formatMoney(value, base)}
                   </T>
                 </Row>
-              }>
+              }
+            >
               {account.name}
             </SectionTitle>
             {own.length > 0 ? <Card padded={false}>{own.map((view) => row(view, synced))}</Card> : null}
@@ -154,6 +163,7 @@ export default function InvestmentsScreen() {
 
 const styles = StyleSheet.create({
   right: { alignItems: 'flex-end', gap: 2 },
+  dotWell: { width: 40, alignItems: 'center' },
   dot: { width: 12, height: 12, borderRadius: 6 },
   allocation: { flexDirection: 'row', height: 14, borderRadius: radius.pill, overflow: 'hidden', gap: 2 },
   swatch: { width: 10, height: 10, borderRadius: 5 },

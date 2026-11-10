@@ -109,8 +109,8 @@ export default function ConnectionsScreen() {
   return (
     <Screen edges={['bottom']} testID="connections-screen">
       <T tone="muted">
-        Connect a bank and its transactions, balances and investments arrive by themselves. Waypoint talks to the connection service straight from this device, and the
-        access key is kept in the device keychain, not in your data or backups.
+        Connect a bank and its transactions, balances and investments arrive by themselves. Waypoint talks to the connection service straight from this device,
+        and the access key is kept in the device keychain, not in your data or backups.
       </T>
 
       {data.connections.map((connection) => {
@@ -132,7 +132,14 @@ export default function ConnectionsScreen() {
             </T>
             {connection.lastError ? <Notice tone="warning" title="Last sync" body={connection.lastError} /> : null}
             <Row style={styles.wrap}>
-              <Button label={busy === connection.id ? 'Syncing…' : 'Sync now'} icon="refresh" small onPress={() => run(connection.id)} disabled={busy !== null || followed === 0} testID="sync-now" />
+              <Button
+                label={busy === connection.id ? 'Syncing…' : 'Sync now'}
+                icon="refresh"
+                small
+                onPress={() => run(connection.id)}
+                disabled={busy !== null || followed === 0}
+                testID="sync-now"
+              />
               <Button label="Accounts" kind="secondary" small onPress={() => openLinking(connection)} testID="choose-accounts" />
               <Button label="Disconnect" kind="danger" small onPress={() => remove(connection)} testID="disconnect" />
             </Row>
@@ -143,8 +150,8 @@ export default function ConnectionsScreen() {
       <SectionTitle>{data.connections.length > 0 ? 'Connect another bank' : 'Connect a bank'}</SectionTitle>
       <Card>
         <T variant="label" tone="muted">
-          Waypoint uses SimpleFIN, an open standard for sharing read-only bank data. You create a token there, paste it here once, and that is the only thing Waypoint
-          ever holds. It can read balances and transactions; it cannot move money.
+          Waypoint uses SimpleFIN, an open standard for sharing read-only bank data. You create a token there, paste it here once, and that is the only thing
+          Waypoint ever holds. It can read balances and transactions; it cannot move money.
         </T>
         <Button label="1 · Create a token at SimpleFIN" kind="secondary" icon="open-outline" onPress={() => void Linking.openURL(SIMPLEFIN_CREATE_URL)} />
         <Field
@@ -158,11 +165,16 @@ export default function ConnectionsScreen() {
           testID="token-input"
         />
         {problem ? <Notice tone="negative" title="Could not connect" body={problem} /> : null}
-        <Button label={busy === 'connect' ? 'Connecting…' : 'Connect'} onPress={() => start(token)} disabled={!token.trim() || busy !== null} testID="connect-button" />
+        <Button
+          label={busy === 'connect' ? 'Connecting…' : 'Connect'}
+          onPress={() => start(token)}
+          disabled={!token.trim() || busy !== null}
+          testID="connect-button"
+        />
         <Button label="Try it with a demo bank" kind="ghost" onPress={() => start(SIMPLEFIN_DEMO_TOKEN)} disabled={busy !== null} testID="connect-demo" />
         <T variant="caption" tone="faint">
-          SimpleFIN Bridge covers banks in the United States and Canada and charges its own small subscription. Banks refresh about once a day, so Waypoint checks when
-          you open it and whenever you pull down to refresh.
+          SimpleFIN Bridge covers banks in the United States and Canada and charges its own small subscription. Banks refresh about once a day, so Waypoint
+          checks when you open it and whenever you pull down to refresh.
         </T>
       </Card>
 
@@ -171,7 +183,8 @@ export default function ConnectionsScreen() {
         onClose={() => setLinking(null)}
         title="Which accounts to follow"
         testID="link-sheet"
-        footer={<Button label="Save and sync" onPress={saveLinks} testID="save-links" />}>
+        footer={<Button label="Save and sync" onPress={saveLinks} testID="save-links" />}
+      >
         <T variant="label" tone="muted">
           Each bank account can start a new account in Waypoint or continue one you already have. Transactions you entered by hand are matched, not duplicated.
         </T>

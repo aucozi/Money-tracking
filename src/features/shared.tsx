@@ -1,20 +1,38 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { formatMoney } from '@/domain/money';
 import type { TxFilter } from '@/domain/transactions';
 import type { Account, AccountType, Category, Transaction } from '@/domain/types';
 import { useData, useUi } from '@/store/hooks';
 import { Glyph, IconButton, ListItem, Money, Pill, Row, T } from '@/ui/primitives';
-import { useTheme } from '@/ui/theme';
+import { haptic } from '@/platform/haptics';
+import { Glass, hasLiquidGlass } from '@/ui/glass';
+import { Icon } from '@/ui/icon';
+import { space, useTheme, WEB_TAB_BAR_SPACE } from '@/ui/theme';
 
-export const ACCOUNT_TYPES: { type: AccountType; label: string; plural: string; icon: string }[] = [
-  { type: 'checking', label: 'Current account', plural: 'Current accounts', icon: '🏦' },
+export const ACCOUNT_TYPES: {
+  type: AccountType;
+  label: string;
+  plural: string;
+  icon: string;
+}[] = [
+  {
+    type: 'checking',
+    label: 'Current account',
+    plural: 'Current accounts',
+    icon: '🏦',
+  },
   { type: 'savings', label: 'Savings', plural: 'Savings', icon: '🐖' },
   { type: 'cash', label: 'Cash', plural: 'Cash', icon: '💵' },
-  { type: 'investment', label: 'Investments', plural: 'Investments', icon: '📈' },
+  {
+    type: 'investment',
+    label: 'Investments',
+    plural: 'Investments',
+    icon: '📈',
+  },
   { type: 'credit', label: 'Credit card', plural: 'Credit cards', icon: '💳' },
   { type: 'loan', label: 'Loan', plural: 'Loans', icon: '📄' },
   { type: 'other', label: 'Other', plural: 'Other', icon: '🗂️' },
@@ -82,7 +100,7 @@ export function TransactionRow({
       onLongPress={onLongPress}
       leading={
         selecting ? (
-          <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={26} color={selected ? c.accent : c.textFaint} />
+          <Icon name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={26} color={selected ? c.accent : c.textFaint} />
         ) : isTransfer ? (
           <Glyph icon="⇄" />
         ) : isSplit ? (
@@ -106,36 +124,56 @@ export function TransactionRow({
   );
 }
 
-/** The round add button that floats above the tab bar. */
-export function Fab({ onPress, label = 'Add transaction', testID = 'fab' }: { onPress: () => void; label?: string; testID?: string }) {
-  const { c } = useTheme();
+/**
+ * Holds floating controls above the tab bar. On iPhone the tab bar is part of
+ * the safe area, so a safe-area view keeps clear of it whatever its size; the
+ * web build draws its own tab bar and leaves room for it explicitly.
+ */
+export function FloatingDock({ children, align = 'flex-end' }: { children: React.ReactNode; align?: 'flex-end' | 'stretch' }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      testID={testID}
-      style={({ pressed }) => [styles.fab, { backgroundColor: c.accent, bottom: 16, opacity: pressed ? 0.85 : 1 }]}>
-      <Ionicons name="add" size={30} color={c.onAccent} />
-    </Pressable>
+    <SafeAreaView edges={['bottom']} pointerEvents="box-none" style={[styles.dock, { alignItems: align, paddingBottom: space.md + WEB_TAB_BAR_SPACE }]}>
+      {children}
+    </SafeAreaView>
   );
 }
 
-/** Screen title with optional buttons on the right, used at the top of each tab. */
+/** The add button: the one tinted glass control on the screen. */
+export function Fab({ onPress, label = 'Add transaction', testID = 'fab' }: { onPress: () => void; label?: string; testID?: string }) {
+  const { c } = useTheme();
+  return (
+    <FloatingDock>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={() => {
+          haptic.tap();
+          onPress();
+        }}
+        testID={testID}
+        style={({ pressed }) => [styles.fabPress, { opacity: pressed && !hasLiquidGlass ? 0.8 : 1 }]}
+      >
+        <Glass tint={c.accent} interactive style={styles.fab}>
+          <Icon name="add" size={26} color={c.onAccent} />
+        </Glass>
+      </Pressable>
+    </FloatingDock>
+  );
+}
+
+/**
+ * The large title at the top of a tab. Buttons passed as children share one
+ * glass capsule, the way toolbar items are grouped on iPhone.
+ */
 export function TabHeader({ title, subtitle, children }: { title: string; subtitle?: string; children?: React.ReactNode }) {
   return (
-    <Row style={styles.header}>
+    <Row style={styles.header} align="flex-start">
       <View style={styles.flex}>
         <T variant="title" accessibilityRole="header">
           {title}
         </T>
-        {subtitle ? (
-          <T variant="label" tone="muted">
-            {subtitle}
-          </T>
-        ) : null}
+        {subtitle ? <T tone="muted">{subtitle}</T> : null}
       </View>
-      {children}
+      {children ? <Glass style={styles.toolbar}>{children}</Glass> : null}
     </Row>
   );
 }
@@ -143,19 +181,29 @@ export function TabHeader({ title, subtitle, children }: { title: string; subtit
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   amount: { alignItems: 'flex-end', gap: 2 },
-  header: { paddingTop: 8, paddingBottom: 4, minHeight: 52 },
-  fab: {
+  header: { paddingTop: space.sm, paddingBottom: space.xs, minHeight: 56 },
+  toolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 24,
+    paddingHorizontal: 2,
+    height: 48,
+    overflow: 'hidden',
+  },
+  dock: {
     position: 'absolute',
-    right: 20,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: space.lg,
+  },
+  fabPress: { borderRadius: 30 },
+  fab: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    overflow: 'hidden',
   },
 });

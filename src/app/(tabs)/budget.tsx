@@ -12,7 +12,23 @@ import { useActivityIndex, useData, useToday } from '@/store/hooks';
 import { useStore } from '@/store/store';
 import { Sheet, useToast } from '@/ui/overlays';
 import { AmountField, MonthSwitcher } from '@/ui/pickers';
-import { Button, Card, Glyph, IconButton, ListItem, Money, Notice, Pill, ProgressBar, Row, Screen, SectionTitle, Segmented, T, ToggleRow } from '@/ui/primitives';
+import {
+  Button,
+  Card,
+  Glyph,
+  IconButton,
+  ListItem,
+  Money,
+  Notice,
+  Pill,
+  ProgressBar,
+  Row,
+  Screen,
+  SectionTitle,
+  Segmented,
+  T,
+  ToggleRow,
+} from '@/ui/primitives';
 import { space, useTheme } from '@/ui/theme';
 
 const UNIT_NAME: Record<string, string> = { USD: 'dollar', CAD: 'dollar', AUD: 'dollar', NZD: 'dollar', EUR: 'euro', GBP: 'pound' };
@@ -29,10 +45,7 @@ export default function Budget() {
   const base = data.settings.baseCurrency;
 
   const budget = useMemo(() => computeMonthBudget(data, index, month), [data, index, month]);
-  const suggestions = useMemo(
-    () => suggestBudgets(data, index, month, 5 * 10 ** currencyDecimals(base)),
-    [data, index, month, base],
-  );
+  const suggestions = useMemo(() => suggestBudgets(data, index, month, 5 * 10 ** currencyDecimals(base)), [data, index, month, base]);
   const money = (amount: number, whole = false) => formatMoney(amount, base, { whole });
   const zero = budget.mode === 'zero';
   const left = budget.totalBudgeted - budget.totalSpent;
@@ -41,7 +54,7 @@ export default function Budget() {
   return (
     <Screen testID="budget">
       <TabHeader title="Budget">
-        <IconButton icon="pricetags-outline" label="Manage categories" onPress={() => router.push('/categories')} filled testID="open-categories" />
+        <IconButton icon="pricetags-outline" label="Manage categories" onPress={() => router.push('/categories')} testID="open-categories" />
       </TabHeader>
       <MonthSwitcher month={month} onChange={setMonth} />
 
@@ -154,7 +167,8 @@ export default function Budget() {
                   {money(group.spent, true)}
                   {group.budgeted > 0 ? ` / ${money(group.budgeted, true)}` : ''}
                 </T>
-              }>
+              }
+            >
               {group.group.name}
             </SectionTitle>
             <Card padded={false}>
@@ -230,9 +244,15 @@ function CategoryRow({ row, currency, onPress }: { row: BudgetRow; currency: str
               </T>
             ) : null}
           </T>
-          {row.state !== 'unbudgeted' ? <View style={styles.bar}><ProgressBar fraction={row.spent / Math.max(1, limit)} color={color} height={5} /></View> : null}
+          {row.state !== 'unbudgeted' ? (
+            <View style={styles.bar}>
+              <ProgressBar fraction={row.spent / Math.max(1, limit)} color={color} height={5} />
+            </View>
+          ) : null}
           <Row gap={6}>
-            {row.carryIn !== 0 ? <Pill label={`${row.carryIn > 0 ? '+' : '−'}${money(Math.abs(row.carryIn), true)} carried`} tone={row.carryIn > 0 ? 'positive' : 'negative'} /> : null}
+            {row.carryIn !== 0 ? (
+              <Pill label={`${row.carryIn > 0 ? '+' : '−'}${money(Math.abs(row.carryIn), true)} carried`} tone={row.carryIn > 0 ? 'positive' : 'negative'} />
+            ) : null}
             <T variant="caption" tone={row.state === 'over' ? 'negative' : row.state === 'near' ? 'warning' : 'faint'}>
               {status}
             </T>
@@ -278,7 +298,8 @@ function BudgetForm({ category, month, onClose }: { category: Category; month: s
       onClose={onClose}
       title={`${category.icon} ${category.name}`}
       testID="budget-sheet"
-      footer={<Button label="Save" onPress={save} testID="budget-save" />}>
+      footer={<Button label="Save" onPress={save} testID="budget-save" />}
+    >
       <AmountField
         label={isIncome ? `Expected in ${formatMonth(month)}` : `Budget for ${formatMonth(month)}`}
         value={amount}

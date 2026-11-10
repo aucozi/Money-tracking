@@ -1,14 +1,5 @@
 import { rule, tx } from '@/test/factories';
-import {
-  applyRules,
-  cleanPayee,
-  describeRule,
-  previewRule,
-  ruleFromCategorisation,
-  ruleHasActions,
-  ruleHasConditions,
-  ruleMatches,
-} from '../rules';
+import { applyRules, cleanPayee, describeRule, previewRule, ruleFromCategorisation, ruleHasActions, ruleHasConditions, ruleMatches } from '../rules';
 
 describe('cleanPayee', () => {
   it.each([
@@ -113,15 +104,22 @@ describe('applyRules', () => {
   });
 
   it('leaves split transactions categorised as they are', () => {
-    const split = tx({ payee: 'CityRide', splits: [{ id: 'a', amount: -500, categoryId: 'x' }, { id: 'b', amount: -500, categoryId: 'y' }] });
-    const { tx: result } = applyRules(split, [
-      rule({ conditions: { payeeText: 'cityride', payeeMatch: 'contains' }, actions: { categoryId: 'transport' } }),
-    ]);
+    const split = tx({
+      payee: 'CityRide',
+      splits: [
+        { id: 'a', amount: -500, categoryId: 'x' },
+        { id: 'b', amount: -500, categoryId: 'y' },
+      ],
+    });
+    const { tx: result } = applyRules(split, [rule({ conditions: { payeeText: 'cityride', payeeMatch: 'contains' }, actions: { categoryId: 'transport' } })]);
     expect(result.categoryId).toBeNull();
   });
 
   it('ignores rules with no conditions and returns the same object when nothing applies', () => {
-    const { tx: result, applied } = applyRules(base, [rule({ actions: { categoryId: 'x' } }), rule({ conditions: { payeeText: 'nope', payeeMatch: 'contains' }, actions: { categoryId: 'y' } })]);
+    const { tx: result, applied } = applyRules(base, [
+      rule({ actions: { categoryId: 'x' } }),
+      rule({ conditions: { payeeText: 'nope', payeeMatch: 'contains' }, actions: { categoryId: 'y' } }),
+    ]);
     expect(result).toBe(base);
     expect(applied).toEqual([]);
   });
@@ -168,7 +166,9 @@ describe('rule helpers', () => {
     expect(describeRule(rule({ conditions: { payeeText: 'x', payeeMatch: 'exact', amountMin: 100, amountMax: 100, direction: 'income' } }), names).when).toBe(
       'payee is "x" and amount is €1 and money comes in',
     );
-    expect(describeRule(rule({ conditions: { payeeText: 'x', payeeMatch: 'startsWith', amountMin: 100 } }), names).when).toBe('payee starts with "x" and amount is at least €1');
+    expect(describeRule(rule({ conditions: { payeeText: 'x', payeeMatch: 'startsWith', amountMin: 100 } }), names).when).toBe(
+      'payee starts with "x" and amount is at least €1',
+    );
     expect(describeRule(rule({ conditions: { payeeMatch: 'contains', amountMax: 100 } }), names).when).toBe('amount is at most €1');
     expect(describeRule(rule(), names)).toEqual({ when: 'No conditions yet', then: 'No actions yet' });
   });

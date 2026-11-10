@@ -12,11 +12,23 @@ const today = '2026-11-09';
 function base(): AppData {
   let data = emptyData('EUR');
   data = { ...data, settings: { ...data.settings, onboarded: true, rates: { USD: 0.9 } } };
-  data = { ...data, accounts: [
-    { id: 'cur', name: 'Current', type: 'checking', currency: 'EUR', openingBalance: 100000, openingDate: '2026-01-01', archived: false, includeInNetWorth: true },
-    { id: 'sav', name: 'Savings', type: 'savings', currency: 'EUR', openingBalance: 0, openingDate: '2026-01-01', archived: false, includeInNetWorth: true },
-    { id: 'usd', name: 'Dollars', type: 'checking', currency: 'USD', openingBalance: 0, openingDate: '2026-01-01', archived: false, includeInNetWorth: true },
-  ] };
+  data = {
+    ...data,
+    accounts: [
+      {
+        id: 'cur',
+        name: 'Current',
+        type: 'checking',
+        currency: 'EUR',
+        openingBalance: 100000,
+        openingDate: '2026-01-01',
+        archived: false,
+        includeInNetWorth: true,
+      },
+      { id: 'sav', name: 'Savings', type: 'savings', currency: 'EUR', openingBalance: 0, openingDate: '2026-01-01', archived: false, includeInNetWorth: true },
+      { id: 'usd', name: 'Dollars', type: 'checking', currency: 'USD', openingBalance: 0, openingDate: '2026-01-01', archived: false, includeInNetWorth: true },
+    ],
+  };
   return data;
 }
 const balance = (data: AppData, id: string) => accountBalances(data.accounts, data.transactions).get(id);
@@ -39,7 +51,9 @@ describe('accounts', () => {
     const account = data.accounts.find((item) => item.id === id)!;
     expect(account).toMatchObject({ name: 'Card', type: 'credit', archived: false, includeInNetWorth: true, apr: 20 });
     expect(ops.updateAccount(data, id, { archived: true }).accounts.find((item) => item.id === id)?.archived).toBe(true);
-    expect(ops.addAccount(base(), { name: ' ', type: 'cash', currency: 'EUR', openingBalance: 0, openingDate: today }).data.accounts.at(-1)?.name).toBe('Account');
+    expect(ops.addAccount(base(), { name: ' ', type: 'cash', currency: 'EUR', openingBalance: 0, openingDate: today }).data.accounts.at(-1)?.name).toBe(
+      'Account',
+    );
   });
 
   it('reconciles to a statement balance without adding a transaction', () => {
@@ -55,7 +69,17 @@ describe('accounts', () => {
     let data = base();
     data = ops.addTransaction(data, { accountId: 'cur', date: today, amount: -100, payee: 'A' }).data;
     data = ops.addTransfer(data, { fromAccountId: 'cur', toAccountId: 'sav', date: today, amount: 5000 }).data;
-    data = ops.addRecurring(data, { name: 'Rent', amount: -90000, currency: 'EUR', accountId: 'cur', categoryId: null, frequency: 'monthly', anchorDate: today, matchText: 'Rent', tolerancePct: 10 }).data;
+    data = ops.addRecurring(data, {
+      name: 'Rent',
+      amount: -90000,
+      currency: 'EUR',
+      accountId: 'cur',
+      categoryId: null,
+      frequency: 'monthly',
+      anchorDate: today,
+      matchText: 'Rent',
+      tolerancePct: 10,
+    }).data;
     data = ops.addGoal(data, { name: 'Buffer', targetAmount: 100000, createdDate: today, accountId: 'cur' }).data;
     data = ops.addRule(data, { enabled: true, conditions: { payeeMatch: 'contains', payeeText: 'x', accountId: 'cur' }, actions: { markReviewed: true } }).data;
 
@@ -76,7 +100,10 @@ describe('categories', () => {
     const added = ops.addCategory(grouped.data, { name: 'Etsy', groupId: grouped.id, icon: '🧶' });
     expect(added.data.categories.at(-1)).toMatchObject({ name: 'Etsy', kind: 'income', icon: '🧶', archived: false, rollover: false });
     expect(ops.addCategory(grouped.data, { name: 'x', groupId: 'nope', icon: '' }).id).toBe('');
-    expect(ops.addCategory(grouped.data, { name: ' ', groupId: grouped.id, icon: '' }).data.categories.at(-1)).toMatchObject({ name: 'New category', icon: '🏷️' });
+    expect(ops.addCategory(grouped.data, { name: ' ', groupId: grouped.id, icon: '' }).data.categories.at(-1)).toMatchObject({
+      name: 'New category',
+      icon: '🏷️',
+    });
     expect(ops.addGroup(base(), '', 'expense').data.categoryGroups.at(-1)?.name).toBe('New group');
   });
 
@@ -99,12 +126,31 @@ describe('categories', () => {
     data = ops.setBudget(data, 'cat_dining', '2026-11', 20000, 'forward');
     data = ops.addTransaction(data, { accountId: 'cur', date: today, amount: -1000, payee: 'Cafe', categoryId: 'cat_dining' }).data;
     data = ops.addTransaction(data, {
-      accountId: 'cur', date: today, amount: -3000, payee: 'Mixed',
-      splits: [{ id: 'a', amount: -1000, categoryId: 'cat_dining' }, { id: 'b', amount: -2000, categoryId: 'cat_groceries' }],
+      accountId: 'cur',
+      date: today,
+      amount: -3000,
+      payee: 'Mixed',
+      splits: [
+        { id: 'a', amount: -1000, categoryId: 'cat_dining' },
+        { id: 'b', amount: -2000, categoryId: 'cat_groceries' },
+      ],
     }).data;
-    data = ops.addRecurring(data, { name: 'Lunch club', amount: -1500, currency: 'EUR', categoryId: 'cat_dining', frequency: 'weekly', anchorDate: today, matchText: 'Lunch club', tolerancePct: 10 }).data;
+    data = ops.addRecurring(data, {
+      name: 'Lunch club',
+      amount: -1500,
+      currency: 'EUR',
+      categoryId: 'cat_dining',
+      frequency: 'weekly',
+      anchorDate: today,
+      matchText: 'Lunch club',
+      tolerancePct: 10,
+    }).data;
     data = ops.addRule(data, { enabled: true, conditions: { payeeMatch: 'contains', payeeText: 'cafe' }, actions: { categoryId: 'cat_dining' } }).data;
-    data = ops.addRule(data, { enabled: true, conditions: { payeeMatch: 'contains', payeeText: 'bar' }, actions: { categoryId: 'cat_dining', addTags: ['night'] } }).data;
+    data = ops.addRule(data, {
+      enabled: true,
+      conditions: { payeeMatch: 'contains', payeeText: 'bar' },
+      actions: { categoryId: 'cat_dining', addTags: ['night'] },
+    }).data;
 
     data = ops.deleteCategory(data, 'cat_dining');
     expect(data.categories.some((item) => item.id === 'cat_dining')).toBe(false);
@@ -149,7 +195,11 @@ describe('transactions', () => {
   });
 
   it('runs rules on new transactions but respects a category chosen by hand', () => {
-    let data = ops.addRule(base(), { enabled: true, conditions: { payeeMatch: 'contains', payeeText: 'market' }, actions: { categoryId: 'cat_groceries', addTags: ['food'] } }).data;
+    let data = ops.addRule(base(), {
+      enabled: true,
+      conditions: { payeeMatch: 'contains', payeeText: 'market' },
+      actions: { categoryId: 'cat_groceries', addTags: ['food'] },
+    }).data;
     data = ops.addTransaction(data, { accountId: 'cur', date: today, amount: -1000, payee: 'Greenway Market' }).data;
     data = ops.addTransaction(data, { accountId: 'cur', date: today, amount: -1000, payee: 'Flea Market', categoryId: 'cat_gifts' }).data;
     data = ops.addTransaction(data, { accountId: 'cur', date: today, amount: -1000, payee: 'Night Market' }, { automate: false }).data;
@@ -161,7 +211,16 @@ describe('transactions', () => {
   });
 
   it('links new transactions to the recurring item they pay and borrows its category', () => {
-    let data = ops.addRecurring(base(), { name: 'StreamBox', amount: -1399, currency: 'EUR', categoryId: 'cat_subscriptions', frequency: 'monthly', anchorDate: '2026-11-08', matchText: 'streambox', tolerancePct: 10 }).data;
+    let data = ops.addRecurring(base(), {
+      name: 'StreamBox',
+      amount: -1399,
+      currency: 'EUR',
+      categoryId: 'cat_subscriptions',
+      frequency: 'monthly',
+      anchorDate: '2026-11-08',
+      matchText: 'streambox',
+      tolerancePct: 10,
+    }).data;
     data = ops.addTransaction(data, { accountId: 'cur', date: '2026-11-08', amount: -1399, payee: 'STREAMBOX.COM' }).data;
     expect(data.transactions[0]).toMatchObject({ recurringId: data.recurrings[0].id, categoryId: 'cat_subscriptions' });
   });
@@ -179,7 +238,10 @@ describe('transactions', () => {
     const converted = ops.addTransfer(base(), { fromAccountId: 'cur', toAccountId: 'usd', date: today, amount: 9000 }).data;
     expect(converted.transactions[1].amount).toBe(10000);
     const exact = ops.addTransfer(base(), { fromAccountId: 'cur', toAccountId: 'usd', date: today, amount: 9000, toAmount: 9875, payee: 'FX' }).data;
-    expect(exact.transactions.map((tx) => [tx.amount, tx.payee])).toEqual([[-9000, 'FX'], [9875, 'FX']]);
+    expect(exact.transactions.map((tx) => [tx.amount, tx.payee])).toEqual([
+      [-9000, 'FX'],
+      [9875, 'FX'],
+    ]);
   });
 
   it('refuses a transfer to the same or an unknown account', () => {
@@ -207,7 +269,12 @@ describe('transactions', () => {
 
   it('normalises edits: transfers have no category, splits replace it, a spread needs two months', () => {
     let { data, id } = ops.addTransaction(base(), { accountId: 'cur', date: today, amount: -3000, payee: 'Shop', categoryId: 'cat_other', spreadMonths: 6 });
-    data = ops.updateTransaction(data, id, { splits: [{ id: 'a', amount: -1000, categoryId: 'cat_gifts' }, { id: 'b', amount: -2000, categoryId: 'cat_other' }] });
+    data = ops.updateTransaction(data, id, {
+      splits: [
+        { id: 'a', amount: -1000, categoryId: 'cat_gifts' },
+        { id: 'b', amount: -2000, categoryId: 'cat_other' },
+      ],
+    });
     expect(data.transactions[0]).toMatchObject({ categoryId: null, spreadMonths: 6 });
     data = ops.updateTransaction(data, id, { splits: [], categoryId: 'cat_gifts', spreadMonths: 1 });
     expect(data.transactions[0]).toMatchObject({ categoryId: 'cat_gifts', splits: undefined, spreadMonths: undefined });
@@ -219,7 +286,17 @@ describe('transactions', () => {
   it('updates many at once, leaving transfers and splits uncategorised', () => {
     let data = base();
     const a = ops.addTransaction(data, { accountId: 'cur', date: today, amount: -100, payee: 'A', reviewed: false });
-    const b = ops.addTransaction(a.data, { accountId: 'cur', date: today, amount: -100, payee: 'B', reviewed: false, splits: [{ id: 'x', amount: -50, categoryId: null }, { id: 'y', amount: -50, categoryId: null }] });
+    const b = ops.addTransaction(a.data, {
+      accountId: 'cur',
+      date: today,
+      amount: -100,
+      payee: 'B',
+      reviewed: false,
+      splits: [
+        { id: 'x', amount: -50, categoryId: null },
+        { id: 'y', amount: -50, categoryId: null },
+      ],
+    });
     const c = ops.addTransfer(b.data, { fromAccountId: 'cur', toAccountId: 'sav', date: today, amount: 100 });
     const d = ops.addTransaction(c.data, { accountId: 'cur', date: today, amount: -100, payee: 'D', reviewed: false });
     data = ops.updateTransactions(d.data, [a.id, b.id, c.id], { categoryId: 'cat_other', reviewed: true });
@@ -239,7 +316,9 @@ describe('transactions', () => {
 });
 
 describe('importing', () => {
-  const file = readCSV('Date,Description,Amount,Category\n2026-11-01,SQ *GREENWAY MARKET 0412,-45.00,\n2026-11-02,Employer Ltd,2000.00,salary\n2026-11-03,StreamBox,-13.99,Nonsense');
+  const file = readCSV(
+    'Date,Description,Amount,Category\n2026-11-01,SQ *GREENWAY MARKET 0412,-45.00,\n2026-11-02,Employer Ltd,2000.00,salary\n2026-11-03,StreamBox,-13.99,Nonsense',
+  );
   const rows = buildImportRows(file, inferMapping(file), { currency: 'EUR', dateOrder: 'YMD', decimal: '.', flipSign: false }).rows;
 
   it('adds rows as unreviewed transactions, keeping the bank descriptor and matching categories by name', () => {
@@ -260,8 +339,21 @@ describe('importing', () => {
   });
 
   it('applies rules and bill matching to imported rows', () => {
-    let data = ops.addRule(base(), { enabled: true, conditions: { payeeMatch: 'contains', payeeText: '0412' }, actions: { categoryId: 'cat_groceries', markReviewed: true } }).data;
-    data = ops.addRecurring(data, { name: 'StreamBox', amount: -1399, currency: 'EUR', categoryId: 'cat_subscriptions', frequency: 'monthly', anchorDate: '2026-11-03', matchText: 'StreamBox', tolerancePct: 5 }).data;
+    let data = ops.addRule(base(), {
+      enabled: true,
+      conditions: { payeeMatch: 'contains', payeeText: '0412' },
+      actions: { categoryId: 'cat_groceries', markReviewed: true },
+    }).data;
+    data = ops.addRecurring(data, {
+      name: 'StreamBox',
+      amount: -1399,
+      currency: 'EUR',
+      categoryId: 'cat_subscriptions',
+      frequency: 'monthly',
+      anchorDate: '2026-11-03',
+      matchText: 'StreamBox',
+      tolerancePct: 5,
+    }).data;
     const result = ops.importTransactions(data, 'cur', rows, { keepBalance: false });
     expect(result.data.transactions[0]).toMatchObject({ categoryId: 'cat_groceries', reviewed: true });
     expect(result.data.transactions[2]).toMatchObject({ categoryId: 'cat_subscriptions', recurringId: data.recurrings[0].id });
@@ -275,7 +367,17 @@ describe('importing', () => {
 });
 
 describe('recurring items', () => {
-  const rent = { name: 'Landlord', amount: -90000, currency: 'EUR', accountId: 'cur', categoryId: 'cat_housing', frequency: 'monthly' as const, anchorDate: '2026-11-01', matchText: 'landlord', tolerancePct: 5 };
+  const rent = {
+    name: 'Landlord',
+    amount: -90000,
+    currency: 'EUR',
+    accountId: 'cur',
+    categoryId: 'cat_housing',
+    frequency: 'monthly' as const,
+    anchorDate: '2026-11-01',
+    matchText: 'landlord',
+    tolerancePct: 5,
+  };
 
   it('links past payments when an item starts being tracked', () => {
     let data = ops.addTransaction(base(), { accountId: 'cur', date: '2026-11-01', amount: -90000, payee: 'Landlord Ltd' }).data;
@@ -288,7 +390,14 @@ describe('recurring items', () => {
   it('marks a due date as paid by recording the payment', () => {
     const added = ops.addRecurring(base(), rent);
     const paid = ops.markPaid(added.data, added.id, '2026-11-01', today);
-    expect(paid.data.transactions[0]).toMatchObject({ accountId: 'cur', date: today, amount: -90000, payee: 'Landlord', categoryId: 'cat_housing', recurringId: added.id });
+    expect(paid.data.transactions[0]).toMatchObject({
+      accountId: 'cur',
+      date: today,
+      amount: -90000,
+      payee: 'Landlord',
+      categoryId: 'cat_housing',
+      recurringId: added.id,
+    });
     const schedule = scheduleBetween(paid.data.recurrings, paid.data.transactions, '2026-11-01', '2026-11-30', today);
     expect(schedule[0].state).toBe('paid');
   });

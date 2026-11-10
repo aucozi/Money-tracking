@@ -36,12 +36,7 @@ export interface Forecast {
  * Average daily spending that is not a tracked bill, over the last `lookback`
  * days. Returns 0 until there are two weeks of history to base it on.
  */
-export function everydaySpendingPerDay(
-  transactions: readonly Transaction[],
-  ctx: Ctx,
-  today: ISODate,
-  lookback = 90,
-): number {
+export function everydaySpendingPerDay(transactions: readonly Transaction[], ctx: Ctx, today: ISODate, lookback = 90): number {
   const from = addDays(today, -lookback);
   let total = 0;
   let earliest = today;
@@ -76,9 +71,7 @@ export interface ForecastInput {
  */
 export function forecastBalance(input: ForecastInput): Forecast {
   const { accounts, transactions, recurrings, ctx, today, days, everydaySpending } = input;
-  const selected = accounts.filter((account) =>
-    input.accountIds ? input.accountIds.includes(account.id) : isCashAccount(account) && !account.archived,
-  );
+  const selected = accounts.filter((account) => (input.accountIds ? input.accountIds.includes(account.id) : isCashAccount(account) && !account.archived));
   const selectedIds = new Set(selected.map((account) => account.id));
   const balances = accountBalances(accounts, transactions);
   let balance = 0;

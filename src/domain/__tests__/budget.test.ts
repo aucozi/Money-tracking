@@ -68,12 +68,7 @@ describe('setBudgetAmount', () => {
   });
 });
 
-function fixture(overrides: {
-  categories?: Category[];
-  transactions?: Transaction[];
-  budgets?: AppData['budgets'];
-  mode?: 'tracking' | 'zero';
-}) {
+function fixture(overrides: { categories?: Category[]; transactions?: Transaction[]; budgets?: AppData['budgets']; mode?: 'tracking' | 'zero' }) {
   const groups: CategoryGroup[] = [
     { id: 'need', name: 'Essentials', kind: 'expense', sort: 0 },
     { id: 'want', name: 'Lifestyle', kind: 'expense', sort: 1 },
@@ -148,10 +143,7 @@ describe('computeMonthBudget', () => {
   it('tracks expected and received income, including uncategorised income', () => {
     const { data, index } = fixture({
       budgets: { pay: [{ from: '2026-01', amount: 300000 }] },
-      transactions: [
-        tx({ date: '2026-03-25', amount: 310000, categoryId: 'pay' }),
-        tx({ date: '2026-03-26', amount: 5000, categoryId: null }),
-      ],
+      transactions: [tx({ date: '2026-03-25', amount: 310000, categoryId: 'pay' }), tx({ date: '2026-03-26', amount: 5000, categoryId: null })],
     });
     const budget = computeMonthBudget(data, index, '2026-03');
     expect(budget.income).toEqual([expect.objectContaining({ expected: 300000, received: 310000 })]);

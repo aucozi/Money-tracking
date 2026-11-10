@@ -7,7 +7,10 @@ const DELIMITERS = [',', ';', '\t', '|'] as const;
 
 /** Pick the delimiter that splits the first lines into the most consistent columns. */
 export function detectDelimiter(text: string): string {
-  const lines = text.split(/\r?\n/).filter((line) => line.trim()).slice(0, 12);
+  const lines = text
+    .split(/\r?\n/)
+    .filter((line) => line.trim())
+    .slice(0, 12);
   let best = ',';
   let bestScore = -1;
   for (const delimiter of DELIMITERS) {
@@ -109,9 +112,68 @@ export interface CsvFile {
 export type Field = 'date' | 'payee' | 'amount' | 'debit' | 'credit' | 'category' | 'notes' | 'currency';
 
 const SYNONYMS: Record<Field, string[]> = {
-  date: ['date', 'transaction date', 'posted date', 'posting date', 'post date', 'completed date', 'started date', 'booking date', 'value date', 'trans date', 'datum', 'data', 'fecha', 'buchungstag', 'valuta', 'data operacji', 'date operation'],
-  payee: ['description', 'payee', 'merchant', 'name', 'details', 'transaction details', 'narrative', 'counterparty', 'beneficiary', 'beneficiary name', 'title', 'reference', 'text', 'aprasymas', 'gavejas', 'moketojas', 'beschreibung', 'verwendungszweck', 'empfanger', 'concepto', 'descripcion', 'libelle', 'opis', 'omschrijving'],
-  amount: ['amount', 'sum', 'value', 'total', 'transaction amount', 'amount (eur)', 'amount (usd)', 'amount (gbp)', 'suma', 'betrag', 'importe', 'montant', 'kwota', 'bedrag', 'belopp'],
+  date: [
+    'date',
+    'transaction date',
+    'posted date',
+    'posting date',
+    'post date',
+    'completed date',
+    'started date',
+    'booking date',
+    'value date',
+    'trans date',
+    'datum',
+    'data',
+    'fecha',
+    'buchungstag',
+    'valuta',
+    'data operacji',
+    'date operation',
+  ],
+  payee: [
+    'description',
+    'payee',
+    'merchant',
+    'name',
+    'details',
+    'transaction details',
+    'narrative',
+    'counterparty',
+    'beneficiary',
+    'beneficiary name',
+    'title',
+    'reference',
+    'text',
+    'aprasymas',
+    'gavejas',
+    'moketojas',
+    'beschreibung',
+    'verwendungszweck',
+    'empfanger',
+    'concepto',
+    'descripcion',
+    'libelle',
+    'opis',
+    'omschrijving',
+  ],
+  amount: [
+    'amount',
+    'sum',
+    'value',
+    'total',
+    'transaction amount',
+    'amount (eur)',
+    'amount (usd)',
+    'amount (gbp)',
+    'suma',
+    'betrag',
+    'importe',
+    'montant',
+    'kwota',
+    'bedrag',
+    'belopp',
+  ],
   debit: ['debit', 'withdrawal', 'withdrawals', 'paid out', 'money out', 'outflow', 'spent', 'debit amount', 'soll', 'cargo'],
   credit: ['credit', 'deposit', 'deposits', 'paid in', 'money in', 'inflow', 'received', 'credit amount', 'haben', 'abono'],
   category: ['category', 'kategorie', 'categoria', 'kategorija', 'categorie'],
@@ -164,9 +226,7 @@ export function readCSV(text: string): CsvFile {
   const data = all.slice(headerIndex + 1);
   return {
     headers:
-      headerIndex === -1
-        ? Array.from({ length: width }, (_, i) => `Column ${i + 1}`)
-        : pad(all[headerIndex].cells).map((cell, i) => cell || `Column ${i + 1}`),
+      headerIndex === -1 ? Array.from({ length: width }, (_, i) => `Column ${i + 1}`) : pad(all[headerIndex].cells).map((cell, i) => cell || `Column ${i + 1}`),
     rows: data.map((row) => pad(row.cells)),
     lines: data.map((row) => row.line),
   };

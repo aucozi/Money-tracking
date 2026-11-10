@@ -93,7 +93,8 @@ export default function RecurringScreen() {
     <ModalScreen
       title={existing ? 'Edit recurring' : 'New recurring'}
       testID="recurring-screen"
-      footer={<FormActions onSave={save} onDelete={existing ? remove : undefined} saveLabel={existing ? 'Save' : 'Track it'} />}>
+      footer={<FormActions onSave={save} onDelete={existing ? remove : undefined} saveLabel={existing ? 'Save' : 'Track it'} />}
+    >
       <Segmented
         value={direction}
         onChange={(next) => {
@@ -116,7 +117,14 @@ export default function RecurringScreen() {
         error={attempted ? errors.name : null}
         testID="recurring-name"
       />
-      <AmountField label="Amount" value={amount} currency={effectiveCurrency} onChange={setAmount} error={attempted ? errors.amount : null} testID="recurring-amount" />
+      <AmountField
+        label="Amount"
+        value={amount}
+        currency={effectiveCurrency}
+        onChange={setAmount}
+        error={attempted ? errors.amount : null}
+        testID="recurring-amount"
+      />
       <OptionField label="How often" options={FREQUENCIES} value={frequency} onChange={setFrequency} testID="recurring-frequency" />
       {amount && frequency !== 'monthly' ? (
         <T variant="caption" tone="faint">
@@ -129,12 +137,7 @@ export default function RecurringScreen() {
         onChange={(next) => next && setAnchorDate(next)}
         testID="recurring-date"
       />
-      <AccountField
-        label={direction === 'income' ? 'Paid into' : 'Paid from'}
-        value={accountId}
-        onChange={setAccountId}
-        allowNone="Any account"
-      />
+      <AccountField label={direction === 'income' ? 'Paid into' : 'Paid from'} value={accountId} onChange={setAccountId} allowNone="Any account" />
       {!account ? <CurrencyField value={currency} onChange={setCurrency} /> : null}
       <CategoryField value={categoryId} onChange={setCategoryId} kind={direction === 'income' ? 'income' : 'expense'} />
       <Field

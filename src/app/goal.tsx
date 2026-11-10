@@ -52,7 +52,12 @@ export default function GoalScreen() {
 
   const remove = async () => {
     if (!existing) return;
-    const ok = await confirm({ title: `Delete ${existing.name}?`, message: 'The goal and its record of contributions will be removed.', confirmLabel: 'Delete', destructive: true });
+    const ok = await confirm({
+      title: `Delete ${existing.name}?`,
+      message: 'The goal and its record of contributions will be removed.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
     if (!ok) return;
     store.deleteGoal(existing.id);
     toast('Goal deleted');
@@ -79,7 +84,8 @@ export default function GoalScreen() {
     <ModalScreen
       title={existing ? 'Edit goal' : 'New goal'}
       testID="goal-screen"
-      footer={<FormActions onSave={save} onDelete={existing ? remove : undefined} saveLabel={existing ? 'Save' : 'Add goal'} />}>
+      footer={<FormActions onSave={save} onDelete={existing ? remove : undefined} saveLabel={existing ? 'Save' : 'Add goal'} />}
+    >
       {existing && progress ? (
         <Card>
           <Row align="flex-end">
@@ -118,13 +124,7 @@ export default function GoalScreen() {
       </Row>
       <AmountField label="Target" value={target} currency={base} onChange={setTarget} error={attempted ? errors.target : null} testID="goal-target" />
       <DateField label="Target date" value={targetDate} onChange={setTargetDate} clearable placeholder="No deadline" testID="goal-date" />
-      <AccountField
-        label="Follow an account"
-        value={accountId}
-        onChange={setAccountId}
-        allowNone="No, I will add to it by hand"
-        testID="goal-account"
-      />
+      <AccountField label="Follow an account" value={accountId} onChange={setAccountId} allowNone="No, I will add to it by hand" testID="goal-account" />
       <T variant="caption" tone="faint">
         {accountId ? 'Progress is the balance of that account, so it updates by itself.' : 'Record each amount you set aside below once the goal is saved.'}
       </T>
@@ -143,7 +143,11 @@ export default function GoalScreen() {
                 .reverse()
                 .slice(0, 12)
                 .map((item) => (
-                  <ListItem key={item.id} title={formatDate(item.date, 'long')} trailing={<Money amount={item.amount} currency={base} colored weight="600" />} />
+                  <ListItem
+                    key={item.id}
+                    title={formatDate(item.date, 'long')}
+                    trailing={<Money amount={item.amount} currency={base} colored weight="600" />}
+                  />
                 ))}
             </Card>
           ) : null}

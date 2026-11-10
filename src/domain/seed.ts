@@ -18,8 +18,22 @@ import {
 } from './types';
 
 export const CATEGORY_COLORS = [
-  '#0F766E', '#2563EB', '#D97706', '#DB2777', '#7C3AED', '#059669', '#DC2626', '#0891B2',
-  '#CA8A04', '#4F46E5', '#EA580C', '#65A30D', '#BE185D', '#475569', '#9333EA', '#0D9488',
+  '#0F766E',
+  '#2563EB',
+  '#D97706',
+  '#DB2777',
+  '#7C3AED',
+  '#059669',
+  '#DC2626',
+  '#0891B2',
+  '#CA8A04',
+  '#4F46E5',
+  '#EA580C',
+  '#65A30D',
+  '#BE185D',
+  '#475569',
+  '#9333EA',
+  '#0D9488',
 ];
 
 const GROUPS: { id: ID; name: string; kind: 'expense' | 'income' }[] = [
@@ -52,17 +66,19 @@ const CATEGORIES: [id: ID, name: string, icon: string, groupId: ID][] = [
 /** A deliberately short starting list. People add what they need; nobody prunes 60 defaults. */
 export function defaultCategories(): { groups: CategoryGroup[]; categories: Category[] } {
   const groups = GROUPS.map((group, index) => ({ ...group, sort: index }));
-  const categories = CATEGORIES.map(([id, name, icon, groupId], index): Category => ({
-    id,
-    name,
-    icon,
-    groupId,
-    kind: groupId === 'grp_income' ? 'income' : 'expense',
-    color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
-    archived: false,
-    rollover: false,
-    sort: index,
-  }));
+  const categories = CATEGORIES.map(
+    ([id, name, icon, groupId], index): Category => ({
+      id,
+      name,
+      icon,
+      groupId,
+      kind: groupId === 'grp_income' ? 'income' : 'expense',
+      color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+      archived: false,
+      rollover: false,
+      sort: index,
+    }),
+  );
   return { groups, categories };
 }
 
@@ -116,7 +132,7 @@ export function demoData(today: ISODate, baseCurrency: CurrencyCode): AppData {
   const factor = currencyDecimals(baseCurrency) === 0 ? 100 : 1;
   const m = (major: number) => toMinor(major * factor, baseCurrency);
   const between = (low: number, high: number) => low + random() * (high - low);
-  const pick = <T,>(items: readonly T[]): T => items[Math.floor(random() * items.length)];
+  const pick = <T>(items: readonly T[]): T => items[Math.floor(random() * items.length)];
 
   const thisMonth = monthKey(today);
   const firstMonth = addMonthsToKey(thisMonth, -5);
@@ -125,11 +141,60 @@ export function demoData(today: ISODate, baseCurrency: CurrencyCode): AppData {
   data.settings.rates = { [foreign]: baseCurrency === 'GBP' ? 0.85 : baseCurrency === 'USD' ? 1.3 : 1.17 };
 
   const accounts: Account[] = [
-    { id: 'acc_everyday', name: 'Everyday account', type: 'checking', currency: baseCurrency, openingBalance: m(2150), openingDate: start, archived: false, includeInNetWorth: true },
-    { id: 'acc_savings', name: 'Rainy day savings', type: 'savings', currency: baseCurrency, openingBalance: m(8400), openingDate: start, archived: false, includeInNetWorth: true },
-    { id: 'acc_card', name: 'Credit card', type: 'credit', currency: baseCurrency, openingBalance: m(-640), openingDate: start, archived: false, includeInNetWorth: true, apr: 21.9, minPayment: m(35) },
-    { id: 'acc_loan', name: 'Car loan', type: 'loan', currency: baseCurrency, openingBalance: m(-7200), openingDate: start, archived: false, includeInNetWorth: true, apr: 6.4, minPayment: m(245) },
-    { id: 'acc_travel', name: 'Travel wallet', type: 'cash', currency: foreign, openingBalance: 26000, openingDate: start, archived: false, includeInNetWorth: true },
+    {
+      id: 'acc_everyday',
+      name: 'Everyday account',
+      type: 'checking',
+      currency: baseCurrency,
+      openingBalance: m(2150),
+      openingDate: start,
+      archived: false,
+      includeInNetWorth: true,
+    },
+    {
+      id: 'acc_savings',
+      name: 'Rainy day savings',
+      type: 'savings',
+      currency: baseCurrency,
+      openingBalance: m(8400),
+      openingDate: start,
+      archived: false,
+      includeInNetWorth: true,
+    },
+    {
+      id: 'acc_card',
+      name: 'Credit card',
+      type: 'credit',
+      currency: baseCurrency,
+      openingBalance: m(-640),
+      openingDate: start,
+      archived: false,
+      includeInNetWorth: true,
+      apr: 21.9,
+      minPayment: m(35),
+    },
+    {
+      id: 'acc_loan',
+      name: 'Car loan',
+      type: 'loan',
+      currency: baseCurrency,
+      openingBalance: m(-7200),
+      openingDate: start,
+      archived: false,
+      includeInNetWorth: true,
+      apr: 6.4,
+      minPayment: m(245),
+    },
+    {
+      id: 'acc_travel',
+      name: 'Travel wallet',
+      type: 'cash',
+      currency: foreign,
+      openingBalance: 26000,
+      openingDate: start,
+      archived: false,
+      includeInNetWorth: true,
+    },
   ];
   // An index-fund account kept by hand, to show holdings and gains. Fund names are invented.
   const funds: [id: string, name: string, symbol: string, shares: number, value: number, cost: number][] = [
@@ -138,22 +203,52 @@ export function demoData(today: ISODate, baseCurrency: CurrencyCode): AppData {
     ['hold_tech', 'Northwind Technology', 'NWT', 12, 1410, 980],
   ];
   accounts.push({
-    id: 'acc_invest', name: 'Index funds', type: 'investment', currency: baseCurrency,
-    openingBalance: funds.reduce((total, fund) => total + m(fund[4]), 0), openingDate: start, archived: false, includeInNetWorth: true,
+    id: 'acc_invest',
+    name: 'Index funds',
+    type: 'investment',
+    currency: baseCurrency,
+    openingBalance: funds.reduce((total, fund) => total + m(fund[4]), 0),
+    openingDate: start,
+    archived: false,
+    includeInNetWorth: true,
   });
   data.holdings = funds.map(([id, name, symbol, shares, value, cost]) => ({
-    id, accountId: 'acc_invest', name, symbol, shares, marketValue: m(value), costBasis: m(cost), currency: baseCurrency, updatedAt: today,
+    id,
+    accountId: 'acc_invest',
+    name,
+    symbol,
+    shares,
+    marketValue: m(value),
+    costBasis: m(cost),
+    currency: baseCurrency,
+    updatedAt: today,
   }));
   data.accounts = accounts;
 
   const recurrings: Recurring[] = [];
   const addRecurring = (
-    id: string, name: string, amount: number, frequency: Recurring['frequency'], firstDue: ISODate,
-    categoryId: ID | null, tolerancePct = 10, accountId: ID = 'acc_everyday',
+    id: string,
+    name: string,
+    amount: number,
+    frequency: Recurring['frequency'],
+    firstDue: ISODate,
+    categoryId: ID | null,
+    tolerancePct = 10,
+    accountId: ID = 'acc_everyday',
   ) => {
     recurrings.push({
-      id, name, amount, currency: baseCurrency, accountId, categoryId, frequency,
-      anchorDate: firstDue, status: 'active', matchText: name, tolerancePct, skipped: [],
+      id,
+      name,
+      amount,
+      currency: baseCurrency,
+      accountId,
+      categoryId,
+      frequency,
+      anchorDate: firstDue,
+      status: 'active',
+      matchText: name,
+      tolerancePct,
+      skipped: [],
     });
   };
   const dayIn = (month: string, day: number): ISODate => {
@@ -173,21 +268,36 @@ export function demoData(today: ISODate, baseCurrency: CurrencyCode): AppData {
 
   data.rules = [
     { id: 'rule_groceries', enabled: true, conditions: { payeeText: 'Market', payeeMatch: 'contains' }, actions: { categoryId: 'cat_groceries' } },
-    { id: 'rule_rides', enabled: true, conditions: { payeeText: 'CityRide', payeeMatch: 'contains' }, actions: { categoryId: 'cat_transport', addTags: ['rides'] } },
-    { id: 'rule_coffee', enabled: true, conditions: { payeeText: 'Daily Grind', payeeMatch: 'contains', amountMax: m(12) }, actions: { categoryId: 'cat_dining' } },
+    {
+      id: 'rule_rides',
+      enabled: true,
+      conditions: { payeeText: 'CityRide', payeeMatch: 'contains' },
+      actions: { categoryId: 'cat_transport', addTags: ['rides'] },
+    },
+    {
+      id: 'rule_coffee',
+      enabled: true,
+      conditions: { payeeText: 'Daily Grind', payeeMatch: 'contains', amountMax: m(12) },
+      actions: { categoryId: 'cat_dining' },
+    },
   ] satisfies Rule[];
 
   const transactions: Transaction[] = [];
   let sequence = 0;
-  const add = (
-    accountId: ID, date: ISODate, amount: number, payee: string, categoryId: ID | null,
-    extra: Partial<Transaction> = {},
-  ): Transaction => {
+  const add = (accountId: ID, date: ISODate, amount: number, payee: string, categoryId: ID | null, extra: Partial<Transaction> = {}): Transaction => {
     sequence += 1;
     const tx: Transaction = {
       id: `demo_${sequence}`,
-      accountId, date, amount, payee, categoryId,
-      tags: [], status: 'cleared', kind: 'standard', reviewed: true, createdAt: sequence,
+      accountId,
+      date,
+      amount,
+      payee,
+      categoryId,
+      tags: [],
+      status: 'cleared',
+      kind: 'standard',
+      reviewed: true,
+      createdAt: sequence,
       ...extra,
     };
     if (tx.kind === 'standard') {
@@ -292,24 +402,36 @@ export function demoData(today: ISODate, baseCurrency: CurrencyCode): AppData {
   budget('cat_gifts', 40);
   budget('cat_salary', 3250);
   data.categories = data.categories.map((category) =>
-    category.id === 'cat_travel' || category.id === 'cat_gifts'
-      ? { ...category, rollover: true, rolloverFrom: addMonthsToKey(thisMonth, -4) }
-      : category,
+    category.id === 'cat_travel' || category.id === 'cat_gifts' ? { ...category, rollover: true, rolloverFrom: addMonthsToKey(thisMonth, -4) } : category,
   );
 
   const tripDate = addMonths(today, 7);
   data.goals = [
     {
-      id: 'goal_buffer', name: 'Six-month buffer', icon: '🛟', color: '#0F766E', targetAmount: m(12000),
-      accountId: 'acc_savings', contributions: [], createdDate: start, archived: false,
+      id: 'goal_buffer',
+      name: 'Six-month buffer',
+      icon: '🛟',
+      color: '#0F766E',
+      targetAmount: m(12000),
+      accountId: 'acc_savings',
+      contributions: [],
+      createdDate: start,
+      archived: false,
     },
     {
-      id: 'goal_trip', name: 'Summer in Japan', icon: '🗾', color: '#DB2777', targetAmount: m(2400),
+      id: 'goal_trip',
+      name: 'Summer in Japan',
+      icon: '🗾',
+      color: '#DB2777',
+      targetAmount: m(2400),
       targetDate: makeDate(parts(tripDate).year, parts(tripDate).month, 1),
       contributions: [0, 1, 2, 3].map((n) => ({
-        id: `contrib_${n}`, date: dayIn(addMonthsToKey(thisMonth, n - 4), 27), amount: m(180),
+        id: `contrib_${n}`,
+        date: dayIn(addMonthsToKey(thisMonth, n - 4), 27),
+        amount: m(180),
       })),
-      createdDate: dayIn(addMonthsToKey(thisMonth, -4), 1), archived: false,
+      createdDate: dayIn(addMonthsToKey(thisMonth, -4), 1),
+      archived: false,
     },
   ] satisfies Goal[];
 

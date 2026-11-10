@@ -12,7 +12,21 @@ describe('transactionsToCSV', () => {
     const coffee = data.transactions.find((tx) => tx.payee === 'Daily Grind Coffee' && tx.status === 'pending')!;
     const rows = parseCSV(transactionsToCSV([coffee], data));
     expect(rows[0]).toEqual(CSV_HEADERS);
-    expect(rows[1]).toEqual(['2026-11-09', 'Daily Grind Coffee', '-4.60', 'EUR', 'Credit card', 'Dining out', 'Lifestyle', 'Expense', 'Pending', '', '', '', '']);
+    expect(rows[1]).toEqual([
+      '2026-11-09',
+      'Daily Grind Coffee',
+      '-4.60',
+      'EUR',
+      'Credit card',
+      'Dining out',
+      'Lifestyle',
+      'Expense',
+      'Pending',
+      '',
+      '',
+      '',
+      '',
+    ]);
   });
 
   it('writes a row per split part', () => {
@@ -96,23 +110,125 @@ describe('backup and restore', () => {
     ['not JSON', 'hello', /not valid JSON/],
     ['some other JSON', '{"a":1}', /not a Waypoint backup/],
     ['an array', '[]', /not a Waypoint backup/],
-    ['a newer version', broken((f) => { f.schemaVersion = SCHEMA_VERSION + 1; }), /newer version/],
-    ['no currency', broken((f) => { f.data.settings.baseCurrency = 'euro'; }), /base currency/],
-    ['no accounts', broken((f) => { delete f.data.accounts; }), /no accounts list/],
-    ['a bad account', broken((f) => { f.data.accounts[0].openingBalance = 1.5; }), /Account 1 is missing/],
-    ['a bad opening date', broken((f) => { f.data.accounts[0].openingDate = '2026-02-31'; }), /opening date/],
-    ['an item with no id', broken((f) => { f.data.accounts[0].id = ''; }), /Item 1 in accounts/],
-    ['an orphan category', broken((f) => { f.data.categories[0].groupId = 'nope'; }), /does not belong to a group/],
-    ['an orphan transaction', broken((f) => { f.data.transactions[2].accountId = 'nope'; }), /Transaction 3 belongs to an account/],
-    ['a bad date', broken((f) => { f.data.transactions[0].date = '2026-13-01'; }), /Transaction 1 has no valid date/],
-    ['a fractional amount', broken((f) => { f.data.transactions[0].amount = 10.5; }), /no valid amount/],
-    ['a missing payee', broken((f) => { delete f.data.transactions[0].payee; }), /no payee/],
-    ['an unknown category', broken((f) => { f.data.transactions[0].categoryId = 'nope'; }), /category that is not in the backup/],
-    ['a bad recurring item', broken((f) => { f.data.recurrings[0].anchorDate = 'soon'; }), /Recurring item/],
-    ['a bad goal', broken((f) => { f.data.goals[0].targetAmount = 'lots'; }), /Goal/],
-    ['a bad rule', broken((f) => { f.data.rules[0].conditions = null; }), /Rule 1/],
-    ['no budgets', broken((f) => { f.data.budgets = []; }), /no budgets/],
-    ['a bad budget', broken((f) => { f.data.budgets.cat_housing = [{ from: '2026-01', amount: 'x' }]; }), /budget for category/],
+    [
+      'a newer version',
+      broken((f) => {
+        f.schemaVersion = SCHEMA_VERSION + 1;
+      }),
+      /newer version/,
+    ],
+    [
+      'no currency',
+      broken((f) => {
+        f.data.settings.baseCurrency = 'euro';
+      }),
+      /base currency/,
+    ],
+    [
+      'no accounts',
+      broken((f) => {
+        delete f.data.accounts;
+      }),
+      /no accounts list/,
+    ],
+    [
+      'a bad account',
+      broken((f) => {
+        f.data.accounts[0].openingBalance = 1.5;
+      }),
+      /Account 1 is missing/,
+    ],
+    [
+      'a bad opening date',
+      broken((f) => {
+        f.data.accounts[0].openingDate = '2026-02-31';
+      }),
+      /opening date/,
+    ],
+    [
+      'an item with no id',
+      broken((f) => {
+        f.data.accounts[0].id = '';
+      }),
+      /Item 1 in accounts/,
+    ],
+    [
+      'an orphan category',
+      broken((f) => {
+        f.data.categories[0].groupId = 'nope';
+      }),
+      /does not belong to a group/,
+    ],
+    [
+      'an orphan transaction',
+      broken((f) => {
+        f.data.transactions[2].accountId = 'nope';
+      }),
+      /Transaction 3 belongs to an account/,
+    ],
+    [
+      'a bad date',
+      broken((f) => {
+        f.data.transactions[0].date = '2026-13-01';
+      }),
+      /Transaction 1 has no valid date/,
+    ],
+    [
+      'a fractional amount',
+      broken((f) => {
+        f.data.transactions[0].amount = 10.5;
+      }),
+      /no valid amount/,
+    ],
+    [
+      'a missing payee',
+      broken((f) => {
+        delete f.data.transactions[0].payee;
+      }),
+      /no payee/,
+    ],
+    [
+      'an unknown category',
+      broken((f) => {
+        f.data.transactions[0].categoryId = 'nope';
+      }),
+      /category that is not in the backup/,
+    ],
+    [
+      'a bad recurring item',
+      broken((f) => {
+        f.data.recurrings[0].anchorDate = 'soon';
+      }),
+      /Recurring item/,
+    ],
+    [
+      'a bad goal',
+      broken((f) => {
+        f.data.goals[0].targetAmount = 'lots';
+      }),
+      /Goal/,
+    ],
+    [
+      'a bad rule',
+      broken((f) => {
+        f.data.rules[0].conditions = null;
+      }),
+      /Rule 1/,
+    ],
+    [
+      'no budgets',
+      broken((f) => {
+        f.data.budgets = [];
+      }),
+      /no budgets/,
+    ],
+    [
+      'a bad budget',
+      broken((f) => {
+        f.data.budgets.cat_housing = [{ from: '2026-01', amount: 'x' }];
+      }),
+      /budget for category/,
+    ],
   ])('refuses %s with a clear reason', (_name, text, message) => {
     expect(() => parseBackup(text)).toThrow(BackupError);
     expect(() => parseBackup(text)).toThrow(message);

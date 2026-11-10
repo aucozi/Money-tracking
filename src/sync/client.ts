@@ -20,7 +20,9 @@ async function request(fetchImpl: Fetch, url: string, init: RequestInit): Promis
 export async function claimAccessUrl(token: string, fetchImpl: Fetch = fetch): Promise<string> {
   const response = await request(fetchImpl, claimUrlFromToken(token), { method: 'POST', headers: { 'Content-Length': '0' } });
   if (response.status === 403) {
-    throw new SimpleFinError('This token has already been used or does not exist. If you did not use it yourself, disable it in SimpleFIN, then create a new one.');
+    throw new SimpleFinError(
+      'This token has already been used or does not exist. If you did not use it yourself, disable it in SimpleFIN, then create a new one.',
+    );
   }
   if (!response.ok) throw new SimpleFinError(`The token could not be claimed (error ${response.status}). Create a new one and try again.`);
   const accessUrl = (await response.text()).trim();
@@ -31,8 +33,12 @@ export async function claimAccessUrl(token: string, fetchImpl: Fetch = fetch): P
 /** Fetch accounts, balances, transactions and holdings from a SimpleFIN server. */
 export async function fetchSnapshot(accessUrl: string, query: AccountsQuery, today: ISODate, fetchImpl: Fetch = fetch): Promise<RemoteSnapshot> {
   const access = parseAccessUrl(accessUrl);
-  const response = await request(fetchImpl, accountsUrl(access, query), { method: 'GET', headers: { Authorization: access.authorization, Accept: 'application/json' } });
-  if (response.status === 403) throw new SimpleFinError('The bank connection no longer accepts this app. Access may have been revoked: connect again with a new token.');
+  const response = await request(fetchImpl, accountsUrl(access, query), {
+    method: 'GET',
+    headers: { Authorization: access.authorization, Accept: 'application/json' },
+  });
+  if (response.status === 403)
+    throw new SimpleFinError('The bank connection no longer accepts this app. Access may have been revoked: connect again with a new token.');
   if (response.status === 402) throw new SimpleFinError('The SimpleFIN subscription for this connection has lapsed. Renew it to keep syncing.');
   if (!response.ok) throw new SimpleFinError(`The bank connection is not answering properly (error ${response.status}). Try again later.`);
   let payload: unknown;
