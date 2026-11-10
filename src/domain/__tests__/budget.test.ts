@@ -1,5 +1,5 @@
 import { account, category, ctx, tx } from '@/test/factories';
-import { budgetAmountFor, carryInFor, computeMonthBudget, setBudgetAmount, spendingByDay } from '../budget';
+import { budgetAmountFor, carryInFor, computeMonthBudget, setBudgetAmount, spendingByDay, suggestBudgets } from '../budget';
 import { buildActivityIndex } from '../transactions';
 import type { AppData, BudgetEntry, Category, CategoryGroup, Transaction } from '../types';
 
@@ -265,5 +265,39 @@ describe('spendingByDay', () => {
     // Day 1: 1000 + 400 share of the spread purchase.
     expect(days.slice(0, 4)).toEqual([1400, 1400, 1700, 1700]);
     expect(days[27]).toBe(1700);
+  });
+});
+
+describe('suggestBudgets', () => {
+  it('suggests the recent average, rounded up, for categories without a budget', () => {
+    const { data, index } = fixture({
+      budgets: { rent: [{ from: '2026-01', amount: 90000 }] },
+      transactions: [
+        tx({ date: '2026-01-05', amount: -30000, categoryId: 'food' }),
+        tx({ date: '2026-02-05', amount: -34000, categoryId: 'food' }),
+        tx({ date: '2026-03-05', amount: -38100, categoryId: 'food' }),
+        tx({ date: '2026-03-06', amount: -90000, categoryId: 'rent' }),
+        tx({ date: '2026-03-07', amount: 250000, categoryId: 'pay' }),
+        tx({ date: '2026-04-02', amount: -99999, categoryId: 'fun' }),
+      ],
+    });
+    // Average 340.33 a month, rounded up to the next 5.00. Rent already has a budget; April is not history yet.
+    expect(suggestBudgets(data, index, '2026-04', 500)).toEqual([{ categoryId: 'food', amount: 34500 }]);
+  });
+
+  it('averages over the months that have data and suggests nothing without history', () => {
+    const { data, index } = fixture({ transactions: [tx({ date: '2026-03-05', amount: -1000, categoryId: 'food' })] });
+    expect(suggestBudgets(data, index, '2026-04', 500)).toEqual([{ categoryId: 'food', amount: 1000 }]);
+    expect(suggestBudgets(data, index, '2026-09', 500)).toEqual([]);
+    expect(suggestBudgets(data, new Map(), '2026-04', 500)).toEqual([]);
+  });
+
+  it('ignores archived categories and categories where refunds outweigh spending', () => {
+    const categories = [category({ id: 'old', groupId: 'need', archived: true }), category({ id: 'ref', groupId: 'need' })];
+    const { data, index } = fixture({
+      categories,
+      transactions: [tx({ date: '2026-03-05', amount: -1000, categoryId: 'old' }), tx({ date: '2026-03-05', amount: 500, categoryId: 'ref' })],
+    });
+    expect(suggestBudgets(data, index, '2026-04', 500)).toEqual([]);
   });
 });

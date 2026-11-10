@@ -243,3 +243,34 @@ export function spendingByDay(
   let running = 0;
   return days.map((value) => (running += value));
 }
+
+export interface BudgetSuggestion {
+  categoryId: ID;
+  amount: number;
+}
+
+/**
+ * Starting budgets for categories that have none: the average spent over the
+ * previous `lookback` months that have any activity, rounded up to a tidy
+ * `step` (for example 500 = 5.00). Suggestions are offered, never applied silently.
+ */
+export function suggestBudgets(
+  data: Pick<AppData, 'categories' | 'budgets'>,
+  index: ActivityIndex,
+  month: MonthKey,
+  step: number,
+  lookback = 3,
+): BudgetSuggestion[] {
+  const months = monthRange(addMonthsToKey(month, -lookback), addMonthsToKey(month, -1)).filter((past) => index.has(past));
+  if (months.length === 0) return [];
+  const suggestions: BudgetSuggestion[] = [];
+  for (const category of data.categories) {
+    if (category.kind !== 'expense' || category.archived) continue;
+    if (budgetAmountFor(data.budgets[category.id], month) > 0) continue;
+    const spent = months.reduce((total, past) => total - activityFor(index, past, category.id), 0);
+    const average = spent / months.length;
+    if (average <= 0) continue;
+    suggestions.push({ categoryId: category.id, amount: Math.ceil(average / step) * step });
+  }
+  return suggestions;
+}
