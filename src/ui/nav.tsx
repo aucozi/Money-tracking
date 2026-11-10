@@ -3,6 +3,7 @@ import { Stack } from 'expo-router/stack';
 import { type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
+import { ToastHost } from './overlays';
 import { IconButton, Screen } from './primitives';
 
 /** Leave the current screen, falling back to Home when there is nowhere to go back to. */
@@ -40,6 +41,8 @@ export function ModalScreen({
           {children}
         </Screen>
       </KeyboardAvoidingView>
+      {/* On a phone this screen is a sheet that covers the app's own toast, so it shows one itself. */}
+      {Platform.OS !== 'web' ? <ToastHost /> : null}
     </>
   );
 }

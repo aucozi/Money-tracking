@@ -1,3 +1,5 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { Stack } from 'expo-router/stack';
 import * as SplashScreen from 'expo-splash-screen';
@@ -43,6 +45,9 @@ export default function RootLayout() {
   const hydrated = useStore((state) => state.hydrated);
   const onboarded = useStore((state) => state.data.settings.onboarded);
   const loadError = useStore((state) => state.loadError);
+  // Load the icon font before the first screen, so icons never pop in late.
+  const [iconsReady, iconsFailed] = useFonts(Ionicons.font);
+  const ready = hydrated && (iconsReady || Boolean(iconsFailed));
 
   useEffect(() => {
     const stop = startAutosave();
@@ -58,10 +63,10 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (hydrated) void SplashScreen.hideAsync().catch(() => undefined);
-  }, [hydrated]);
+    if (ready) void SplashScreen.hideAsync().catch(() => undefined);
+  }, [ready]);
 
-  if (!hydrated) return null;
+  if (!ready) return null;
 
   const base = theme.dark ? DarkTheme : DefaultTheme;
   const navigation = {
@@ -86,7 +91,8 @@ export default function RootLayout() {
               headerTintColor: theme.c.text,
               contentStyle: { backgroundColor: theme.c.bg },
             }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            {/* The title is what the back button on the next screen is called. */}
+            <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />
             <Stack.Screen name="transaction" options={modal} />
             <Stack.Screen name="account" options={modal} />
             <Stack.Screen name="recurring" options={modal} />

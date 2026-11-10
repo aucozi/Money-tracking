@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, IconButton, Row, T } from './primitives';
@@ -57,10 +57,31 @@ interface ConfirmOptions {
 type Confirm = (options: ConfirmOptions) => Promise<boolean>;
 type Toast = (message: string) => void;
 
-const FeedbackContext = createContext<{ confirm: Confirm; toast: Toast }>({
+const FeedbackContext = createContext<{ confirm: Confirm; toast: Toast; message: string | null }>({
   confirm: async () => false,
   toast: () => undefined,
+  message: null,
 });
+
+/**
+ * Shows the current toast. One sits at the root of the app; on a phone, screens
+ * presented as a sheet add their own, because a sheet covers the root.
+ */
+export function ToastHost({ testID }: { testID?: string }) {
+  const { c } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { message } = useContext(FeedbackContext);
+  if (!message) return null;
+  return (
+    <View pointerEvents="none" style={[styles.toastWrap, { bottom: insets.bottom + 96 }]}>
+      <View accessibilityLiveRegion="polite" accessibilityRole="alert" testID={testID} style={[styles.toast, { backgroundColor: c.text }]}>
+        <T variant="label" style={{ color: c.bg }} center>
+          {message}
+        </T>
+      </View>
+    </View>
+  );
+}
 
 /** Ask before anything that cannot be undone. Resolves true only on an explicit yes. */
 export function useConfirm(): Confirm {
@@ -73,18 +94,31 @@ export function useToast(): Toast {
 }
 
 /**
- * Confirmation dialogs and toasts. Built here rather than on the system alert
- * so they look and behave the same on iPhone, Android and the web.
+ * Confirmation dialogs and toasts. On a phone, confirmations use the system
+ * alert, which is what people expect there and always appears above whatever
+ * sheet is open. Browsers have no equivalent, so the web gets a dialog drawn here.
  */
 export function FeedbackProvider({ children }: { children: ReactNode }) {
   const { c } = useTheme();
-  const insets = useSafeAreaInsets();
   const [dialog, setDialog] = useState<ConfirmOptions | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const resolver = useRef<((value: boolean) => void) | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const confirm = useCallback<Confirm>((options) => {
+    if (Platform.OS !== 'web') {
+      return new Promise<boolean>((resolve) => {
+        Alert.alert(
+          options.title,
+          options.message,
+          [
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+            { text: options.confirmLabel ?? 'OK', style: options.destructive ? 'destructive' : 'default', onPress: () => resolve(true) },
+          ],
+          { cancelable: true, onDismiss: () => resolve(false) },
+        );
+      });
+    }
     resolver.current?.(false);
     setDialog(options);
     return new Promise<boolean>((resolve) => {
@@ -112,7 +146,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <FeedbackContext.Provider value={{ confirm, toast }}>
+    <FeedbackContext.Provider value={{ confirm, toast, message }}>
       {children}
       <Modal visible={dialog !== null} transparent animationType="fade" onRequestClose={() => answer(false)} statusBarTranslucent>
         <View style={[styles.fill, styles.centered, { backgroundColor: c.overlay }]}>
@@ -132,15 +166,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
           </View>
         </View>
       </Modal>
-      {message ? (
-        <View pointerEvents="none" style={[styles.toastWrap, { bottom: insets.bottom + 96 }]}>
-          <View accessibilityLiveRegion="polite" accessibilityRole="alert" testID="toast" style={[styles.toast, { backgroundColor: c.text }]}>
-            <T variant="label" style={{ color: c.bg }} center>
-              {message}
-            </T>
-          </View>
-        </View>
-      ) : null}
+      <ToastHost testID="toast" />
     </FeedbackContext.Provider>
   );
 }

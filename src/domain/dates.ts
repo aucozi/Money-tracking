@@ -190,21 +190,28 @@ function validated(year: number, month: number, day: number): ISODate | null {
 
 /**
  * Work out whether a column of dates is day-first or month-first. A value over
- * 12 in one position settles it; with no such evidence `fallback` is used.
+ * 12 in one position settles it. Failing that, dates written with dots are
+ * taken as day-first, and otherwise `fallback` is used.
  */
 export function detectDateOrder(samples: readonly string[], fallback: DateOrder = 'MDY'): DateOrder {
   let dayFirst = 0;
   let monthFirst = 0;
+  let dotted = 0;
+  let other = 0;
   for (const sample of samples) {
-    const match = /^(\d{1,4})[./-](\d{1,2})[./-](\d{1,4})/.exec(sample.trim());
+    const match = /^(\d{1,4})([./-])(\d{1,2})[./-](\d{1,4})/.exec(sample.trim());
     if (!match) continue;
     if (match[1].length === 4) return 'YMD';
     const first = Number(match[1]);
-    const second = Number(match[2]);
+    const second = Number(match[3]);
     if (first > 12 && second <= 12) dayFirst += 1;
     if (second > 12 && first <= 12) monthFirst += 1;
+    if (match[2] === '.') dotted += 1;
+    else other += 1;
   }
   if (dayFirst > monthFirst) return 'DMY';
   if (monthFirst > dayFirst) return 'MDY';
+  // "03.11.2026" is how day-first countries write dates; month-first ones use slashes.
+  if (dotted > 0 && other === 0) return 'DMY';
   return fallback;
 }

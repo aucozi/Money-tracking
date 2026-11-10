@@ -33,10 +33,12 @@ export default function CategoriesScreen() {
   };
 
   const removeGroup = async (group: CategoryGroup) => {
+    // Close the sheet first: a confirmation cannot appear on top of an open sheet everywhere.
+    setEditingGroup(null);
     const ok = await confirm({ title: `Delete the group ${group.name}?`, confirmLabel: 'Delete', destructive: true });
     if (!ok) return;
     store.deleteGroup(group.id);
-    setEditingGroup(null);
+    toast('Group deleted');
   };
 
   return (

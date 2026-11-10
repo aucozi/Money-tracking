@@ -150,6 +150,12 @@ describe('detectDateOrder', () => {
     expect(detectDateOrder(['2026-02-25'])).toBe('YMD');
   });
 
+  it('reads dotted dates as day-first when the values alone cannot settle it', () => {
+    expect(detectDateOrder(['03.11.2026', '04.11.2026'])).toBe('DMY');
+    expect(detectDateOrder(['03.11.2026', '04/11/2026'])).toBe('MDY');
+    expect(detectDateOrder(['01.25.2026'])).toBe('MDY');
+  });
+
   it('falls back when nothing settles it', () => {
     expect(detectDateOrder(['01/02/2026', '03/04/2026'])).toBe('MDY');
     expect(detectDateOrder(['01/02/2026', '03/04/2026'], 'DMY')).toBe('DMY');

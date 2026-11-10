@@ -32,10 +32,15 @@ export function useLookups() {
   );
 }
 
-/** Open the Transactions tab showing exactly `filter`. */
+/**
+ * Open the Transactions tab showing exactly `filter`. Screens stacked above the
+ * tabs are closed first, so this always returns to the one existing list
+ * rather than opening a second copy of it.
+ */
 export function showTransactions(filter: TxFilter) {
   useUi.getState().setTxFilter(filter);
-  router.navigate('/transactions');
+  if (router.canDismiss()) router.dismissTo('/transactions');
+  else router.navigate('/transactions');
 }
 
 export function TransactionRow({

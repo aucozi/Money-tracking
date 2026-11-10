@@ -15,6 +15,8 @@ import { AmountField, MonthSwitcher } from '@/ui/pickers';
 import { Button, Card, Glyph, IconButton, ListItem, Money, Notice, Pill, ProgressBar, Row, Screen, SectionTitle, Segmented, T, ToggleRow } from '@/ui/primitives';
 import { space, useTheme } from '@/ui/theme';
 
+const UNIT_NAME: Record<string, string> = { USD: 'dollar', CAD: 'dollar', AUD: 'dollar', NZD: 'dollar', EUR: 'euro', GBP: 'pound' };
+
 export default function Budget() {
   const { c } = useTheme();
   const data = useData();
@@ -49,7 +51,7 @@ export default function Budget() {
           onChange={(mode) => store.updateSettings({ budgetMode: mode })}
           options={[
             { value: 'tracking', label: 'Track spending' },
-            { value: 'zero', label: 'Plan every ' + (base === 'USD' ? 'dollar' : base === 'EUR' ? 'euro' : base === 'GBP' ? 'pound' : 'unit') },
+            { value: 'zero', label: UNIT_NAME[base] ? `Plan every ${UNIT_NAME[base]}` : 'Plan all income' },
           ]}
           testID="budget-mode"
         />
