@@ -86,6 +86,8 @@ export function emptyData(baseCurrency: CurrencyCode): AppData {
     recurrings: [],
     goals: [],
     rules: [],
+    holdings: [],
+    connections: [],
   };
 }
 

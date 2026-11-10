@@ -189,6 +189,20 @@ export function validateData(source: Record<string, unknown>): AppData {
     }
   }
 
+  // Holdings and connections arrived in schema 2; older backups simply have none.
+  const holdings = source.holdings === undefined ? [] : list(source, 'holdings');
+  holdings.forEach((holding) => {
+    if (!isText(holding.accountId) || !accountIds.has(holding.accountId)) throw new BackupError(`Holding "${String(holding.name)}" belongs to an account that is not in the backup.`);
+    if (!isText(holding.name) || !isInteger(holding.marketValue) || typeof holding.shares !== 'number' || !isText(holding.currency)) {
+      throw new BackupError(`Holding "${String(holding.name)}" is not valid.`);
+    }
+  });
+  const connections = source.connections === undefined ? [] : list(source, 'connections');
+  connections.forEach((connection) => {
+    if (!isText(connection.name) || !isObject(connection.links)) throw new BackupError(`Connection "${String(connection.name)}" is not valid.`);
+    if (!Array.isArray(connection.remoteAccounts)) connection.remoteAccounts = [];
+  });
+
   const rates: Record<string, number> = {};
   if (isObject(settings.rates)) {
     for (const [code, rate] of Object.entries(settings.rates)) {
@@ -214,5 +228,7 @@ export function validateData(source: Record<string, unknown>): AppData {
     recurrings: recurrings as unknown as AppData['recurrings'],
     goals: goals as unknown as AppData['goals'],
     rules: rules as unknown as AppData['rules'],
+    holdings: holdings as unknown as AppData['holdings'],
+    connections: connections as unknown as AppData['connections'],
   };
 }

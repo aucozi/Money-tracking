@@ -91,6 +91,8 @@ export interface Transaction {
   spreadMonths?: number;
   reviewed: boolean;
   recurringId?: ID;
+  /** Set on transactions that arrived through a bank connection: "connection/account/id". */
+  remoteId?: string;
   /** What was actually charged when the purchase was made in another currency. */
   original?: { amount: number; currency: CurrencyCode };
   createdAt: number;
@@ -174,6 +176,49 @@ export interface Rule {
   actions: RuleActions;
 }
 
+/** A position in an investment account: shares of a fund, a stock, a coin. */
+export interface Holding {
+  id: ID;
+  accountId: ID;
+  name: string;
+  symbol?: string;
+  /** May be fractional. */
+  shares: number;
+  /** What the whole position is worth now, in minor units of `currency`. */
+  marketValue: number;
+  /** What was paid for the whole position, when known. */
+  costBasis?: number;
+  currency: CurrencyCode;
+  updatedAt: ISODate;
+  /** Set when the holding comes from a bank connection; those are replaced on every sync. */
+  remoteId?: string;
+}
+
+/** An account a connection offers, as the bank names it. */
+export interface RemoteAccountInfo {
+  id: string;
+  name: string;
+  institution?: string;
+  currency: CurrencyCode;
+}
+
+/**
+ * A link to a bank data service. The credential itself is never part of the
+ * dataset: it lives in the device keychain and is left out of backups.
+ */
+export interface Connection {
+  id: ID;
+  provider: 'simplefin';
+  name: string;
+  /** Remote account id -> local account id. Remote accounts not listed here are not imported. */
+  links: Record<string, ID>;
+  /** What the connection offered last time, for choosing which accounts to import. */
+  remoteAccounts: RemoteAccountInfo[];
+  /** Milliseconds since the epoch. */
+  lastSyncedAt?: number;
+  lastError?: string;
+}
+
 export type BudgetMode = 'tracking' | 'zero';
 export type ThemePreference = 'system' | 'light' | 'dark';
 
@@ -199,9 +244,12 @@ export interface AppData {
   recurrings: Recurring[];
   goals: Goal[];
   rules: Rule[];
+  holdings: Holding[];
+  connections: Connection[];
 }
 
-export const SCHEMA_VERSION = 1;
+/** Version 2 added holdings and bank connections. Older data loads with both empty. */
+export const SCHEMA_VERSION = 2;
 
 export const LIABILITY_TYPES: readonly AccountType[] = ['credit', 'loan'];
 

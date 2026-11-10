@@ -36,7 +36,8 @@
         }
       ],
       "expo-localization",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-secure-store"
     ],
     "experiments": {
       "reactCompiler": true

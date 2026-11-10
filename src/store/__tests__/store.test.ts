@@ -76,8 +76,9 @@ describe('store persistence', () => {
     useStore.getState().eraseEverything();
     expect(useStore.getState().data).toMatchObject({ transactions: [], accounts: [] });
     expect(useStore.getState().data.settings).toMatchObject({ baseCurrency: 'EUR', onboarded: false });
-    useStore.getState().restore(snapshot);
-    expect(useStore.getState().data).toBe(snapshot);
+    useStore.getState().restore({ ...snapshot, connections: [{ id: 'c', provider: 'simplefin', name: 'Bank', links: {}, remoteAccounts: [] }] });
+    // Everything comes back except bank connections, whose credentials are never in a backup.
+    expect(useStore.getState().data).toEqual({ ...snapshot, connections: [] });
   });
 
   it('exposes every operation as an action', async () => {

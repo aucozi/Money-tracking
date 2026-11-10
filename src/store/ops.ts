@@ -14,6 +14,7 @@ import type {
   CategoryGroup,
   CategoryKind,
   Goal,
+  Holding,
   ID,
   ISODate,
   MonthKey,
@@ -88,6 +89,11 @@ export function deleteAccount(data: AppData, id: ID): AppData {
     rules: data.rules.map((rule) =>
       rule.conditions.accountId === id ? { ...rule, conditions: { ...rule.conditions, accountId: undefined } } : rule,
     ),
+    holdings: data.holdings.filter((holding) => holding.accountId !== id),
+    connections: data.connections.map((connection) => ({
+      ...connection,
+      links: Object.fromEntries(Object.entries(connection.links).filter(([, accountId]) => accountId !== id)),
+    })),
   };
 }
 
@@ -196,7 +202,7 @@ function currencyOf(data: AppData, accountId: ID): string {
 }
 
 /** Run rules and bill matching over a transaction that has just arrived. */
-function automate(data: AppData, tx: Transaction): Transaction {
+export function automate(data: AppData, tx: Transaction): Transaction {
   let next = applyRules(tx, data.rules).tx;
   // A category chosen by hand (or named in the file) outranks any rule.
   if (tx.categoryId !== null && next.kind === 'standard') next = { ...next, categoryId: tx.categoryId };
@@ -219,7 +225,7 @@ function stamp(): number {
   return created;
 }
 
-function build(input: NewTransaction): Transaction {
+export function build(input: NewTransaction): Transaction {
   return {
     categoryId: null,
     tags: [],
@@ -519,4 +525,47 @@ export function applyRuleToExisting(data: AppData, id: ID): { data: AppData; cha
     return next;
   });
   return { data: { ...data, transactions }, changed };
+}
+
+// ── Holdings ────────────────────────────────────────────────────────────────
+
+/** True when a bank connection keeps this account up to date. */
+export function isSynced(data: Pick<AppData, 'connections'>, accountId: ID): boolean {
+  return data.connections.some((connection) => Object.values(connection.links).includes(accountId));
+}
+
+/**
+ * For an investment account kept by hand, the balance is what its holdings are
+ * worth. A synced account takes its balance from the bank instead.
+ */
+function followHoldings(data: AppData, accountId: ID): AppData {
+  const account = data.accounts.find((item) => item.id === accountId);
+  if (!account || account.type !== 'investment' || isSynced(data, accountId)) return data;
+  const own = data.holdings.filter((holding) => holding.accountId === accountId);
+  if (own.length === 0) return data;
+  const value = own.reduce(
+    (total, holding) => total + convert(holding.marketValue, holding.currency, account.currency, data.settings.baseCurrency, data.settings.rates),
+    0,
+  );
+  return reconcileAccount(data, accountId, value);
+}
+
+export type NewHolding = Omit<Holding, 'id' | 'remoteId'>;
+
+export function addHolding(data: AppData, input: NewHolding): { data: AppData; id: ID } {
+  const id = newId('hold_');
+  const holding: Holding = { ...input, id, name: input.name.trim() || input.symbol || 'Holding', symbol: input.symbol?.trim().toUpperCase() || undefined };
+  return { data: followHoldings({ ...data, holdings: [...data.holdings, holding] }, input.accountId), id };
+}
+
+export function updateHolding(data: AppData, id: ID, patch: Partial<Omit<Holding, 'id' | 'accountId'>>): AppData {
+  const holding = data.holdings.find((item) => item.id === id);
+  if (!holding) return data;
+  return followHoldings({ ...data, holdings: replace(data.holdings, id, patch) }, holding.accountId);
+}
+
+export function deleteHolding(data: AppData, id: ID): AppData {
+  const holding = data.holdings.find((item) => item.id === id);
+  if (!holding) return data;
+  return followHoldings({ ...data, holdings: data.holdings.filter((item) => item.id !== id) }, holding.accountId);
 }

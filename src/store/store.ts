@@ -7,6 +7,7 @@ import { demoData, emptyData } from '@/domain/seed';
 import type { AppData, ID, ISODate, MonthKey, Rule, Settings, Transaction } from '@/domain/types';
 
 import * as ops from './ops';
+import * as sync from './sync';
 
 export const STORAGE_KEY = 'waypoint/data/v1';
 const RECOVERY_KEY = 'waypoint/data/unreadable';
@@ -61,6 +62,11 @@ interface Actions {
   deleteGoal: (id: ID) => void;
   contribute: (id: ID, amount: number, date: ISODate) => void;
 
+  addHolding: (input: ops.NewHolding) => ID;
+  updateHolding: (id: ID, patch: Parameters<typeof ops.updateHolding>[2]) => void;
+  deleteHolding: (id: ID) => void;
+  linkAccounts: (connectionId: ID, choices: Parameters<typeof sync.linkAccounts>[2], remote: Parameters<typeof sync.linkAccounts>[3], today: ISODate) => void;
+
   addRule: (rule: Omit<Rule, 'id'>) => ID;
   updateRule: (id: ID, patch: Parameters<typeof ops.updateRule>[2]) => void;
   deleteRule: (id: ID) => void;
@@ -103,7 +109,8 @@ export const useStore = create<Store>((set, get) => {
 
     startFresh: (baseCurrency) => set({ data: { ...emptyData(baseCurrency), settings: { ...emptyData(baseCurrency).settings, onboarded: true } } }),
     loadDemo: (baseCurrency, today) => set({ data: demoData(today, baseCurrency) }),
-    restore: (data) => set({ data, loadError: null }),
+    // A backup never contains bank credentials, so restored connections have to be made again.
+    restore: (data) => set({ data: { ...data, connections: [] }, loadError: null }),
     eraseEverything: () => set((state) => ({ data: emptyData(state.data.settings.baseCurrency) })),
 
     updateSettings: (patch) => change((data) => ops.updateSettings(data, patch)),
@@ -141,6 +148,11 @@ export const useStore = create<Store>((set, get) => {
     updateGoal: (id, patch) => change((data) => ops.updateGoal(data, id, patch)),
     deleteGoal: (id) => change((data) => ops.deleteGoal(data, id)),
     contribute: (id, amount, date) => change((data) => ops.contribute(data, id, amount, date)),
+
+    addHolding: (input) => produce((data) => ops.addHolding(data, input)).id,
+    updateHolding: (id, patch) => change((data) => ops.updateHolding(data, id, patch)),
+    deleteHolding: (id) => change((data) => ops.deleteHolding(data, id)),
+    linkAccounts: (connectionId, choices, remote, today) => change((data) => sync.linkAccounts(data, connectionId, choices, remote, today)),
 
     addRule: (rule) => produce((data) => ops.addRule(data, rule)).id,
     updateRule: (id, patch) => change((data) => ops.updateRule(data, id, patch)),
