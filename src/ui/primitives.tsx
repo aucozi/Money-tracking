@@ -3,6 +3,7 @@ import { useState, type ComponentProps, type ReactNode } from 'react';
 import {
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
@@ -91,12 +92,17 @@ export function Screen({
   edges = ['top'],
   footer,
   testID,
+  onRefresh,
+  refreshing = false,
 }: {
   children: ReactNode;
   scroll?: boolean;
   edges?: ('top' | 'bottom')[];
   footer?: ReactNode;
   testID?: string;
+  /** When given, pulling down calls this. */
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }) {
   const { c } = useTheme();
   return (
@@ -105,6 +111,7 @@ export function Screen({
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.textMuted} /> : undefined}
           showsVerticalScrollIndicator={false}>
           <View style={styles.column}>{children}</View>
         </ScrollView>

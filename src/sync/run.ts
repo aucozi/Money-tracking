@@ -120,3 +120,19 @@ export async function disconnect(connectionId: ID): Promise<void> {
     return { offered };
   });
 }
+
+/**
+ * Pull-to-refresh for screens that show bank data. Returns nothing to wire up
+ * when no bank is connected, so the gesture only exists where it does something.
+ */
+export function useBankRefresh(onDone?: (result: SyncAllResult) => void): { onRefresh?: () => void; refreshing: boolean } {
+  const running = useSync((state) => state.running);
+  const connected = useStore((state) => state.data.connections.some((connection) => Object.keys(connection.links).length > 0));
+  if (!connected) return { refreshing: false };
+  return {
+    refreshing: running,
+    onRefresh: () => {
+      void syncAll().then((result) => onDone?.(result));
+    },
+  };
+}

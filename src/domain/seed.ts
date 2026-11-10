@@ -131,6 +131,19 @@ export function demoData(today: ISODate, baseCurrency: CurrencyCode): AppData {
     { id: 'acc_loan', name: 'Car loan', type: 'loan', currency: baseCurrency, openingBalance: m(-7200), openingDate: start, archived: false, includeInNetWorth: true, apr: 6.4, minPayment: m(245) },
     { id: 'acc_travel', name: 'Travel wallet', type: 'cash', currency: foreign, openingBalance: 26000, openingDate: start, archived: false, includeInNetWorth: true },
   ];
+  // An index-fund account kept by hand, to show holdings and gains. Fund names are invented.
+  const funds: [id: string, name: string, symbol: string, shares: number, value: number, cost: number][] = [
+    ['hold_world', 'Global Shares Index', 'GLSI', 41.5, 5240, 4310],
+    ['hold_bonds', 'Short-Term Bond Fund', 'STBF', 60, 1830, 1865],
+    ['hold_tech', 'Northwind Technology', 'NWT', 12, 1410, 980],
+  ];
+  accounts.push({
+    id: 'acc_invest', name: 'Index funds', type: 'investment', currency: baseCurrency,
+    openingBalance: funds.reduce((total, fund) => total + m(fund[4]), 0), openingDate: start, archived: false, includeInNetWorth: true,
+  });
+  data.holdings = funds.map(([id, name, symbol, shares, value, cost]) => ({
+    id, accountId: 'acc_invest', name, symbol, shares, marketValue: m(value), costBasis: m(cost), currency: baseCurrency, updatedAt: today,
+  }));
   data.accounts = accounts;
 
   const recurrings: Recurring[] = [];

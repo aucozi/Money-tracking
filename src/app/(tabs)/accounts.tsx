@@ -3,12 +3,14 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { currencyToBase } from '@/domain/context';
-import { addMonthsToKey, formatMonth, monthKey, monthRange } from '@/domain/dates';
+import { addMonthsToKey, formatAgo, formatMonth, monthKey, monthRange } from '@/domain/dates';
+import { formatFraction, portfolio } from '@/domain/investments';
 import { formatMoney, hasRate } from '@/domain/money';
 import { netWorth, netWorthHistory } from '@/domain/networth';
 import type { Account } from '@/domain/types';
 import { ACCOUNT_TYPES, TabHeader } from '@/features/shared';
-import { useBalances, useCtx, useData, useToday } from '@/store/hooks';
+import { useBalances, useCtx, useData, useNow, useToday } from '@/store/hooks';
+import { useBankRefresh } from '@/sync/run';
 import { LineChart } from '@/ui/charts';
 import { Button, Card, EmptyState, Glyph, IconButton, ListItem, Money, Notice, Pill, Row, Screen, SectionTitle, T } from '@/ui/primitives';
 import { useTheme } from '@/ui/theme';
@@ -28,6 +30,11 @@ export default function Accounts() {
     return { worth: netWorth(data.accounts, balances, ctx), history };
   }, [data.accounts, data.transactions, ctx, balances, today, month]);
 
+  const invested = useMemo(() => portfolio(data.holdings, ctx), [data.holdings, ctx]);
+  const lastSynced = data.connections.reduce((latest, connection) => Math.max(latest, connection.lastSyncedAt ?? 0), 0);
+  const refresh = useBankRefresh();
+  const now = useNow();
+  const followed = new Set(data.connections.flatMap((connection) => Object.values(connection.links)));
   const open = data.accounts.filter((account) => !account.archived);
   const archived = data.accounts.filter((account) => account.archived);
   const missingRates = [...new Set(open.map((account) => account.currency))].filter((code) => !hasRate(code, base, data.settings.rates));
@@ -41,7 +48,9 @@ export default function Accounts() {
       <ListItem
         key={account.id}
         title={account.name}
-        subtitle={foreign ? `About ${formatMoney(currencyToBase(balance, account.currency, ctx), base)}` : undefined}
+        subtitle={[foreign ? `About ${formatMoney(currencyToBase(balance, account.currency, ctx), base)}` : '', followed.has(account.id) ? 'Synced with your bank' : '']
+          .filter(Boolean)
+          .join(' · ') || undefined}
         accessibilityLabel={`${account.name}, ${formatMoney(balance, account.currency)}`}
         leading={<Glyph icon={ACCOUNT_TYPES.find((item) => item.type === account.type)?.icon ?? '🗂️'} />}
         trailing={
@@ -57,8 +66,9 @@ export default function Accounts() {
   };
 
   return (
-    <Screen testID="accounts">
+    <Screen testID="accounts" {...refresh}>
       <TabHeader title="Accounts">
+        <IconButton icon="link-outline" label="Bank connections" onPress={() => router.push('/connections')} filled testID="open-connections" />
         <IconButton icon="add" label="Add account" onPress={() => router.push('/account')} filled testID="add-account" />
       </TabHeader>
 
@@ -114,6 +124,42 @@ export default function Accounts() {
               ) : null}
             </Row>
           </Card>
+
+          {invested.holdings.length > 0 ? (
+            <Card padded={false}>
+              <ListItem
+                title="Investments"
+                subtitle={
+                  invested.gain !== null && invested.gainFraction !== null
+                    ? `${formatMoney(invested.gain, base, { sign: 'always', whole: true })} · ${formatFraction(invested.gainFraction)} since you bought`
+                    : `${invested.holdings.length} ${invested.holdings.length === 1 ? 'holding' : 'holdings'}`
+                }
+                leading={<Glyph icon="📈" />}
+                trailing={<Money amount={invested.value} currency={base} weight="600" />}
+                onPress={() => router.push('/investments')}
+                testID="open-investments"
+              />
+            </Card>
+          ) : null}
+
+          {data.connections.length > 0 ? (
+            <Card padded={false}>
+              <ListItem
+                title="Bank connections"
+                subtitle={
+                  data.connections.some((connection) => connection.lastError)
+                    ? 'One needs your attention'
+                    : lastSynced
+                      ? `Synced ${formatAgo(lastSynced, now)}. Pull down to check again.`
+                      : 'Choose which accounts to follow'
+                }
+                leading={<Glyph icon="🔗" />}
+                trailing={data.connections.some((connection) => connection.lastError) ? <Pill label="Check" tone="warning" /> : undefined}
+                onPress={() => router.push('/connections')}
+                testID="connections-row"
+              />
+            </Card>
+          ) : null}
 
           {missingRates.length > 0 ? (
             <Notice

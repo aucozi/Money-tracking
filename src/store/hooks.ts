@@ -29,6 +29,16 @@ export function useToday(): ISODate {
   return today;
 }
 
+/** The current time, refreshed every half minute, for labels like "5 minutes ago". */
+export function useNow(intervalMs = 30_000): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(timer);
+  }, [intervalMs]);
+  return now;
+}
+
 export function useCtx() {
   const settings = useStore((state) => state.data.settings);
   const accounts = useStore((state) => state.data.accounts);

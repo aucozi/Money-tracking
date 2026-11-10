@@ -215,3 +215,14 @@ export function detectDateOrder(samples: readonly string[], fallback: DateOrder 
   if (dotted > 0 && other === 0) return 'DMY';
   return fallback;
 }
+
+/** "just now", "5 minutes ago", "3 hours ago", "yesterday", "4 days ago". Times are milliseconds since the epoch. */
+export function formatAgo(then: number, now: number): string {
+  const minutes = Math.floor(Math.max(0, now - then) / 60_000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? 'yesterday' : `${days} days ago`;
+}

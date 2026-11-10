@@ -11,7 +11,9 @@ import { netWorth, netWorthHistory } from '@/domain/networth';
 import { scheduleBetween, upcoming } from '@/domain/recurring';
 import { Fab, showTransactions, TabHeader } from '@/features/shared';
 import { useActivityIndex, useBalances, useCtx, useData, useToday } from '@/store/hooks';
+import { useBankRefresh } from '@/sync/run';
 import { BarChart, LineChart } from '@/ui/charts';
+import { useToast } from '@/ui/overlays';
 import { Button, Card, EmptyState, Glyph, IconButton, ListItem, Money, Notice, ProgressBar, Row, Screen, SectionTitle, T } from '@/ui/primitives';
 import { space, useTheme } from '@/ui/theme';
 
@@ -56,6 +58,10 @@ export default function Home() {
     };
   }, [data, ctx, index, balances, today, month]);
 
+  const toast = useToast();
+  const refresh = useBankRefresh((result) =>
+    toast(result.errors[0] ?? (result.added > 0 ? `${result.added} new ${result.added === 1 ? 'transaction' : 'transactions'}` : 'Already up to date')),
+  );
   const money = (amount: number, whole = false) => formatMoney(amount, base, { whole });
   const day = parts(today).day;
   const hasAccounts = data.accounts.length > 0;
@@ -63,7 +69,7 @@ export default function Home() {
 
   return (
     <View style={styles.flex}>
-      <Screen testID="home">
+      <Screen testID="home" {...refresh}>
         <TabHeader title={formatMonth(month)} subtitle="Your money at a glance">
           <IconButton icon="settings-outline" label="Settings" onPress={() => router.push('/settings')} filled testID="open-settings" />
         </TabHeader>

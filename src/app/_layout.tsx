@@ -9,6 +9,7 @@ import { AppState } from 'react-native';
 
 import { Welcome } from '@/features/welcome';
 import { flushSave, startAutosave, useStore } from '@/store/store';
+import { syncAll } from '@/sync/run';
 import { FeedbackProvider } from '@/ui/overlays';
 import { Button, Notice, Screen, Spacer, T } from '@/ui/primitives';
 import { useTheme } from '@/ui/theme';
@@ -66,6 +67,16 @@ export default function RootLayout() {
     if (ready) void SplashScreen.hideAsync().catch(() => undefined);
   }, [ready]);
 
+  // Bring connected banks up to date when the app opens and whenever it returns to the front.
+  useEffect(() => {
+    if (!ready || !onboarded) return;
+    void syncAll({ onlyIfStale: true });
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void syncAll({ onlyIfStale: true });
+    });
+    return () => subscription.remove();
+  }, [ready, onboarded]);
+
   if (!ready) return null;
 
   const base = theme.dark ? DarkTheme : DefaultTheme;
@@ -100,6 +111,9 @@ export default function RootLayout() {
             <Stack.Screen name="rule" options={modal} />
             <Stack.Screen name="category" options={modal} />
             <Stack.Screen name="import" options={modal} />
+            <Stack.Screen name="holding" options={modal} />
+            <Stack.Screen name="connections" options={{ title: 'Bank connections' }} />
+            <Stack.Screen name="investments" options={{ title: 'Investments' }} />
             <Stack.Screen name="rules" options={{ title: 'Rules' }} />
             <Stack.Screen name="categories" options={{ title: 'Categories' }} />
             <Stack.Screen name="settings" options={{ title: 'Settings' }} />

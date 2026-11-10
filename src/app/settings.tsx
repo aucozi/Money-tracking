@@ -173,6 +173,14 @@ export default function SettingsScreen() {
         <ListItem title="Categories" subtitle={`${data.categories.filter((category) => !category.archived).length} in ${data.categoryGroups.length} groups`} leading={<Glyph icon="🏷️" />} onPress={() => router.push('/categories')} testID="open-categories" />
         <ListItem title="Rules" subtitle={data.rules.length === 0 ? 'Tidy up transactions automatically' : `${data.rules.length} ${data.rules.length === 1 ? 'rule' : 'rules'}, all yours to edit`} leading={<Glyph icon="⚙️" />} onPress={() => router.push('/rules')} testID="open-rules" />
         <ListItem title="Import from CSV" subtitle="Bring in transactions from any bank" leading={<Glyph icon="📥" />} onPress={() => router.push('/import')} />
+        <ListItem
+          title="Bank connections"
+          subtitle={data.connections.length === 0 ? 'Bring in transactions and balances automatically' : `${data.connections.length} connected`}
+          leading={<Glyph icon="🔗" />}
+          onPress={() => router.push('/connections')}
+          testID="open-connections-setting"
+        />
+        <ListItem title="Investments" subtitle="Holdings, value and gains" leading={<Glyph icon="📈" />} onPress={() => router.push('/investments')} testID="open-investments-setting" />
       </Card>
 
       <SectionTitle>Your data</SectionTitle>
@@ -184,7 +192,7 @@ export default function SettingsScreen() {
       </Card>
       <T variant="caption" tone="faint">
         Waypoint keeps your data on this device only. There is no account and no server, which also means no automatic copy: save a backup now and then, and before
-        changing phone.
+        changing phone. Bank connections are not part of a backup; connect them again after restoring.
       </T>
 
       <View style={styles.danger}>

@@ -19,8 +19,8 @@ function deviceCurrency(): string {
 }
 
 const POINTS: { icon: IconName; title: string; body: string }[] = [
-  { icon: 'lock-closed-outline', title: 'Yours alone', body: 'Everything stays on this device. No account, no bank password, no subscription.' },
-  { icon: 'globe-outline', title: 'Any bank, any currency', body: 'Add transactions by hand or import a CSV from any bank, in as many currencies as you use.' },
+  { icon: 'lock-closed-outline', title: 'Yours alone', body: 'Your data lives on this device. No account to create, and Waypoint never sees a bank password.' },
+  { icon: 'globe-outline', title: 'Any bank, any currency', body: 'Add transactions by hand, import a CSV from any bank, or connect your bank for automatic updates.' },
   { icon: 'trending-up-outline', title: 'See what is coming', body: 'Bills, goals and a day-by-day forecast show where your balance is heading, not just where it has been.' },
 ];
 

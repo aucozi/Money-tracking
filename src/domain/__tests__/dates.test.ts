@@ -6,6 +6,7 @@ import {
   daysInMonth,
   detectDateOrder,
   diffDays,
+  formatAgo,
   formatDate,
   formatMonth,
   formatRelative,
@@ -160,5 +161,20 @@ describe('detectDateOrder', () => {
     expect(detectDateOrder(['01/02/2026', '03/04/2026'])).toBe('MDY');
     expect(detectDateOrder(['01/02/2026', '03/04/2026'], 'DMY')).toBe('DMY');
     expect(detectDateOrder(['not a date'], 'DMY')).toBe('DMY');
+  });
+});
+
+describe('formatAgo', () => {
+  it('describes how long ago something happened', () => {
+    const now = Date.UTC(2026, 10, 10, 12);
+    const minute = 60_000;
+    expect(formatAgo(now, now)).toBe('just now');
+    expect(formatAgo(now + 5 * minute, now)).toBe('just now');
+    expect(formatAgo(now - minute, now)).toBe('1 minute ago');
+    expect(formatAgo(now - 59 * minute, now)).toBe('59 minutes ago');
+    expect(formatAgo(now - 60 * minute, now)).toBe('1 hour ago');
+    expect(formatAgo(now - 23 * 60 * minute, now)).toBe('23 hours ago');
+    expect(formatAgo(now - 24 * 60 * minute, now)).toBe('yesterday');
+    expect(formatAgo(now - 4 * 24 * 60 * minute, now)).toBe('4 days ago');
   });
 });
