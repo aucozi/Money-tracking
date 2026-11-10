@@ -35,6 +35,8 @@ await light.page.getByRole('tab', { name: 'Debt' }).click();
 await light.shot('debt');
 await light.page.getByTestId('tab-accounts').click();
 await light.shot('accounts');
+await light.page.getByTestId('open-investments').click();
+await light.shot('investments');
 await light.close();
 
 const dark = await session('dark');

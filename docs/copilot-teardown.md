@@ -59,15 +59,18 @@ file, raw card descriptors are cleaned into readable names, and rows already on 
 charge that reappears with a shifted date. Dates are calendar dates with no timezone, so a transaction cannot drift to
 the neighbouring day.
 
-This is also the main trade-off: **Waypoint has no live bank connection.** See "What Waypoint does not do".
+For people who do want it automatic, Waypoint can also connect to a bank: transactions, balances and holdings sync
+from the bank service straight to the phone, and anything already entered by hand is matched rather than duplicated.
+Coverage and freshness are narrower than Copilot's; see [bank-sync.md](bank-sync.md) and "What Waypoint does not do".
 
 ### 4. Your credentials and data pass through third parties
 
 Bank links run through aggregators (Plaid, Finicity), and the data lives on Copilot's servers.
 *Sources: ToS Watchdog, The Penny Hoarder.*
 
-**Waypoint:** no account, no server, no bank password. Everything is stored on the device. Backup is a single readable
-file you save where you like, and restore validates it before replacing anything.
+**Waypoint:** no account, no Waypoint server, no bank password. Everything is stored on the device. A bank connection
+is optional, uses a read-only token you create yourself, and keeps its access key in the device keychain. Backup is a
+single readable file you save where you like, and restore validates it before replacing anything.
 
 ### 5. Subscription only
 
@@ -142,9 +145,11 @@ words instead of showing a meaningless percentage.
 
 Stated plainly, so nobody is surprised:
 
-- **No live bank sync.** Transactions arrive by hand or by CSV import. This is deliberate (it is what removes the
-  country, currency, reliability and credential problems above) but it is more effort than a working bank link.
-- **No investment holdings or live prices.** An investment account is a balance you update.
+- **Bank sync is narrower than Copilot's.** It covers the United States and Canada through SimpleFIN, refreshes about
+  once a day rather than within minutes, and cannot send a notification the moment a card is charged. Everywhere
+  else, transactions arrive by hand or by CSV import.
+- **Investments are simpler.** Holdings show value and gain since purchase. There is no performance chart over time,
+  no benchmark comparison, and holdings entered by hand are not priced automatically.
 - **No shared household.** There is no server, so two phones cannot share one dataset. One reviewer reports that
   Copilot has announced a household feature; Waypoint has no equivalent. A backup file can be moved between devices
   by hand.
