@@ -230,7 +230,10 @@ export function detectRecurring(
     const sizes = ordered.map((tx) => Math.abs(tx.amount));
     const middle = median(sizes);
     const spread = Math.max(...sizes.map((size) => Math.abs(size - middle))) / (middle || 1);
-    if (spread > 0.4) continue;
+    // Weekly habits (fuel, groceries) repeat too, but at a different price each time.
+    // A bill on a short cycle costs the same every time; longer ones may vary.
+    const short = range.frequency === 'weekly' || range.frequency === 'biweekly';
+    if (spread > (short ? 0.1 : 0.4)) continue;
 
     const last = ordered[ordered.length - 1];
     const step = STEP_DAYS[range.frequency];

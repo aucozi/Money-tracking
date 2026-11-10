@@ -208,6 +208,11 @@ describe('detectRecurring', () => {
     expect(detectRecurring(monthly('PulseGym', [-3490, -3490]), [], accounts, '2026-02-20')).toEqual([]);
   });
 
+  it('does not mistake a weekly habit with changing prices for a bill', () => {
+    const fuel = ['2026-03-02', '2026-03-09', '2026-03-16', '2026-03-23'].map((date, i) => tx({ accountId: 'acc', payee: 'Volt Fuel', amount: -3000 - i * 700, date }));
+    expect(detectRecurring(fuel, [], accounts, '2026-03-25')).toEqual([]);
+  });
+
   it('does not suggest things already tracked, already linked, stopped, or transfers', () => {
     const history = monthly('PulseGym', [-3490, -3490, -3490, -3490]);
     expect(detectRecurring(history, [recurring({ matchText: 'pulsegym' })], accounts, '2026-04-20')).toEqual([]);

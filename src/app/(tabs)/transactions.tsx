@@ -252,7 +252,7 @@ export default function Transactions() {
           <IconButton icon="trash-outline" label="Delete selected" tone="negative" onPress={removeSelected} testID="bulk-delete" />
         </View>
       ) : (
-        <Fab onPress={() => router.push('/transaction')} />
+        <Fab onPress={() => router.push('/transaction')} testID="fab-transactions" />
       )}
 
       <CategorySheet

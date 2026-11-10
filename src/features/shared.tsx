@@ -5,10 +5,20 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { formatMoney } from '@/domain/money';
 import type { TxFilter } from '@/domain/transactions';
-import type { Account, Category, Transaction } from '@/domain/types';
+import type { Account, AccountType, Category, Transaction } from '@/domain/types';
 import { useData, useUi } from '@/store/hooks';
 import { Glyph, IconButton, ListItem, Money, Pill, Row, T } from '@/ui/primitives';
 import { useTheme } from '@/ui/theme';
+
+export const ACCOUNT_TYPES: { type: AccountType; label: string; plural: string; icon: string }[] = [
+  { type: 'checking', label: 'Current account', plural: 'Current accounts', icon: '🏦' },
+  { type: 'savings', label: 'Savings', plural: 'Savings', icon: '🐖' },
+  { type: 'cash', label: 'Cash', plural: 'Cash', icon: '💵' },
+  { type: 'investment', label: 'Investments', plural: 'Investments', icon: '📈' },
+  { type: 'credit', label: 'Credit card', plural: 'Credit cards', icon: '💳' },
+  { type: 'loan', label: 'Loan', plural: 'Loans', icon: '📄' },
+  { type: 'other', label: 'Other', plural: 'Other', icon: '🗂️' },
+];
 
 /** Quick lookups by id for the things rows need to name. */
 export function useLookups() {
@@ -92,14 +102,14 @@ export function TransactionRow({
 }
 
 /** The round add button that floats above the tab bar. */
-export function Fab({ onPress, label = 'Add transaction' }: { onPress: () => void; label?: string }) {
+export function Fab({ onPress, label = 'Add transaction', testID = 'fab' }: { onPress: () => void; label?: string; testID?: string }) {
   const { c } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      testID="fab"
+      testID={testID}
       style={({ pressed }) => [styles.fab, { backgroundColor: c.accent, bottom: 16, opacity: pressed ? 0.85 : 1 }]}>
       <Ionicons name="add" size={30} color={c.onAccent} />
     </Pressable>

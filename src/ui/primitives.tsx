@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type ComponentProps, type ReactNode } from 'react';
+import { useState, type ComponentProps, type ReactNode } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -314,19 +315,33 @@ export interface FieldProps extends TextInputProps {
   suffix?: string;
 }
 
-export function Field({ label, hint, error, suffix, style, ...rest }: FieldProps) {
+export function Field({ label, hint, error, suffix, style, onFocus, onBlur, ...rest }: FieldProps) {
   const { c } = useTheme();
+  const [focused, setFocused] = useState(false);
   return (
     <View style={styles.field}>
       <T variant="label" tone="muted">
         {label}
       </T>
-      <View style={[styles.inputWrap, { backgroundColor: c.surface, borderColor: error ? c.negative : c.border }]}>
+      <View
+        style={[
+          styles.inputWrap,
+          { backgroundColor: c.surface, borderColor: error ? c.negative : focused ? c.accent : c.border },
+          (focused || error) && styles.inputWrapActive,
+        ]}>
         <TextInput
           accessibilityLabel={label}
           placeholderTextColor={c.textFaint}
           {...rest}
-          style={[styles.input, { color: c.text }, style]}
+          onFocus={(event) => {
+            setFocused(true);
+            onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setFocused(false);
+            onBlur?.(event);
+          }}
+          style={[styles.input, { color: c.text }, webNoOutline, style]}
         />
         {suffix ? (
           <T variant="label" tone="faint">
@@ -541,6 +556,9 @@ export function Notice({ tone, title, body, action }: { tone: 'warning' | 'negat
   );
 }
 
+// The focused field is shown by its border; the browser's own outline would double it up.
+const webNoOutline = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null;
+
 export const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { textAlign: 'center' },
@@ -587,6 +605,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     minHeight: 48,
   },
+  inputWrapActive: { borderWidth: 1.5 },
   pickerWrap: { paddingVertical: space.sm },
   input: { flex: 1, fontSize: 16, paddingVertical: space.md, minWidth: 0 },
   toggleRow: { minHeight: 48 },

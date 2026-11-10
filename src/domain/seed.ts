@@ -124,9 +124,9 @@ export function demoData(today: ISODate, baseCurrency: CurrencyCode): AppData {
 
   const accounts: Account[] = [
     { id: 'acc_everyday', name: 'Everyday account', type: 'checking', currency: baseCurrency, openingBalance: m(2150), openingDate: start, archived: false, includeInNetWorth: true },
-    { id: 'acc_savings', name: 'Rainy day savings', type: 'savings', currency: baseCurrency, openingBalance: m(5200), openingDate: start, archived: false, includeInNetWorth: true },
+    { id: 'acc_savings', name: 'Rainy day savings', type: 'savings', currency: baseCurrency, openingBalance: m(8400), openingDate: start, archived: false, includeInNetWorth: true },
     { id: 'acc_card', name: 'Credit card', type: 'credit', currency: baseCurrency, openingBalance: m(-640), openingDate: start, archived: false, includeInNetWorth: true, apr: 21.9, minPayment: m(35) },
-    { id: 'acc_loan', name: 'Car loan', type: 'loan', currency: baseCurrency, openingBalance: m(-9800), openingDate: start, archived: false, includeInNetWorth: true, apr: 6.4, minPayment: m(245) },
+    { id: 'acc_loan', name: 'Car loan', type: 'loan', currency: baseCurrency, openingBalance: m(-7200), openingDate: start, archived: false, includeInNetWorth: true, apr: 6.4, minPayment: m(245) },
     { id: 'acc_travel', name: 'Travel wallet', type: 'cash', currency: foreign, openingBalance: 26000, openingDate: start, archived: false, includeInNetWorth: true },
   ];
   data.accounts = accounts;
@@ -208,7 +208,7 @@ export function demoData(today: ISODate, baseCurrency: CurrencyCode): AppData {
     if (upTo(17)) add('acc_card', dayIn(month, 17), m(-9.99), 'Tunely', 'cat_subscriptions');
     if (offset % 3 === 0 && upTo(18)) add('acc_everyday', dayIn(month, 18), m(-186), 'Shield Insurance', 'cat_insurance');
     if (upTo(20)) transfer('acc_everyday', 'acc_loan', dayIn(month, 20), m(245), 'Car loan payment');
-    if (upTo(22)) transfer('acc_everyday', 'acc_card', dayIn(month, 22), m(Math.round(between(380, 520))), 'Credit card payment');
+    if (upTo(22)) transfer('acc_everyday', 'acc_card', dayIn(month, 22), m(Math.round(between(1040, 1180))), 'Credit card payment');
     if (upTo(25)) add('acc_everyday', dayIn(month, 25), m(3250), 'Northfield Studio', 'cat_salary');
     if (upTo(26)) transfer('acc_everyday', 'acc_savings', dayIn(month, 26), m(300), 'To savings');
 
@@ -252,7 +252,7 @@ export function demoData(today: ISODate, baseCurrency: CurrencyCode): AppData {
   // Fresh activity that still needs a look.
   const recent = (daysAgo: number) => addDays(today, -daysAgo);
   add('acc_card', recent(0), m(-4.6), 'Daily Grind Coffee', 'cat_dining', { status: 'pending', reviewed: false });
-  add('acc_card', recent(0), m(-23.8), 'SQ *LUNA PIZZERIA 0412', null, { status: 'pending', reviewed: false, rawPayee: 'SQ *LUNA PIZZERIA 0412' });
+  add('acc_card', recent(0), m(-23.8), 'Luna Pizzeria', null, { status: 'pending', reviewed: false, rawPayee: 'SQ *LUNA PIZZERIA 0412' });
   add('acc_card', recent(1), m(-67.2), 'Fresh Basket Market', 'cat_groceries', { reviewed: false });
   add('acc_everyday', recent(1), m(-45), 'ATM withdrawal', null, { reviewed: false });
   add('acc_card', recent(2), m(-18.5), 'Paper Lantern Books', null, { reviewed: false });

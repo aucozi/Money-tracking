@@ -70,6 +70,23 @@ describe('netWorth', () => {
   });
 });
 
+describe('netWorthHistory', () => {
+  it('starts when the first account was opened instead of showing months of zero', () => {
+    const accounts = [account({ id: 'a', openingBalance: 5000, openingDate: '2026-03-10' }), account({ id: 'b', openingBalance: 1000, openingDate: '2026-04-02' })];
+    const points = netWorthHistory(accounts, [], ctx(accounts), ['2026-01', '2026-02', '2026-03', '2026-04'], '2026-04-20');
+    expect(points.map((point) => [point.month, point.net])).toEqual([
+      ['2026-03', 5000],
+      ['2026-04', 6000],
+    ]);
+  });
+
+  it('is empty when nothing counts towards net worth', () => {
+    expect(netWorthHistory([], [], ctx([]), ['2026-01'], '2026-01-20')).toEqual([]);
+    const hidden = [account({ includeInNetWorth: false })];
+    expect(netWorthHistory(hidden, [], ctx(hidden), ['2026-01'], '2026-01-20')).toEqual([]);
+  });
+});
+
 describe('forecastBalance', () => {
   const accounts = [
     account({ id: 'cur', openingBalance: 50000 }),

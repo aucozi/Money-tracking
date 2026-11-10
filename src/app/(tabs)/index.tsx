@@ -270,7 +270,7 @@ export default function Home() {
           </>
         )}
       </Screen>
-      {hasAccounts ? <Fab onPress={() => router.push('/transaction')} /> : null}
+      {hasAccounts ? <Fab onPress={() => router.push('/transaction')} testID="fab-home" /> : null}
     </View>
   );
 }

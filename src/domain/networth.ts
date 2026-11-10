@@ -61,7 +61,11 @@ export interface NetWorthPoint extends NetWorth {
   date: ISODate;
 }
 
-/** Net worth at the end of each month; the current month is measured as of today. */
+/**
+ * Net worth at the end of each month; the current month is measured as of
+ * today. Months before the first account existed are left out rather than
+ * shown as zero.
+ */
 export function netWorthHistory(
   accounts: readonly Account[],
   transactions: readonly Transaction[],
@@ -69,7 +73,10 @@ export function netWorthHistory(
   months: readonly MonthKey[],
   today: ISODate,
 ): NetWorthPoint[] {
-  return months.map((month) => {
+  const tracked = accounts.filter((account) => !account.archived && account.includeInNetWorth);
+  if (tracked.length === 0) return [];
+  const firstOpened = tracked.reduce((earliest, account) => (account.openingDate < earliest ? account.openingDate : earliest), tracked[0].openingDate);
+  return months.filter((month) => monthEnd(month) >= firstOpened).map((month) => {
     const end = monthEnd(month);
     const date = end > today ? today : end;
     const balances = accountBalances(accounts, transactions, { asOf: date });
