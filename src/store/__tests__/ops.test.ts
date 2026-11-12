@@ -1,5 +1,5 @@
 import { budgetAmountFor } from '@/domain/budget';
-import { readCSV, inferMapping, buildImportRows } from '@/domain/csv';
+import { readCSV, inferMapping, inferOptions, buildImportRows } from '@/domain/csv';
 import { accountBalances } from '@/domain/networth';
 import { scheduleBetween } from '@/domain/recurring';
 import { demoData, emptyData } from '@/domain/seed';
@@ -500,5 +500,85 @@ describe('demo data', () => {
       if (tx.recurringId) expect(recurringIds.has(tx.recurringId)).toBe(true);
     }
     for (const rule of data.rules) if (rule.actions.categoryId) expect(categoryIds.has(rule.actions.categoryId)).toBe(true);
+  });
+});
+
+describe('importing a statement that covers several accounts', () => {
+  const header = 'date,name,amount,status,category,parent category,excluded,tags,type,account,account mask,note,recurring';
+  const file = readCSV(
+    [
+      header,
+      '2026-10-03,Corner Bakery,4.50,posted,Restaurants,Food & Drink,false,,regular,Current,1234,,',
+      '2026-10-04,Employer Inc,-3250.00,posted,Paycheck,Income,false,,income,Current,1234,,',
+      '2026-10-05,Card payment,500.00,posted,,,false,,internal transfer,Current,1234,,',
+      '2026-10-05,Card payment,-500.00,posted,,,false,,internal transfer,Sapphire Card,9876,,',
+      '2026-10-06,Hotel Alba,142.50,pending,Travel,,false,lisbon,regular,Sapphire Card,9876,,',
+      '2026-10-07,Mystery,9.99,posted,,,false,,regular,Sapphire Card,9876,,',
+      '2026-10-08,Groceries run,61.40,posted,groceries,,false,,regular,Roth IRA,5555,,',
+    ].join('\n'),
+  );
+  const mapping = inferMapping(file);
+  const rows = buildImportRows(file, mapping, inferOptions(file, mapping, 'EUR')).rows;
+  const options = { byAccount: true, createCategories: true, keepBalance: false, today };
+
+  it('creates the accounts and categories the file uses, and reuses the ones that exist', () => {
+    const result = ops.importStatement(base(), rows, options);
+    expect(result).toMatchObject({
+      imported: 7,
+      skipped: 0,
+      accountsCreated: ['Sapphire Card', 'Roth IRA'],
+      categoriesCreated: ['Restaurants', 'Paycheck'],
+    });
+
+    const byName = new Map(result.data.accounts.map((account) => [account.name, account]));
+    expect(byName.get('Sapphire Card')).toMatchObject({ type: 'credit', currency: 'EUR', openingDate: '2026-10-05' });
+    expect(byName.get('Roth IRA')).toMatchObject({ type: 'investment', openingDate: '2026-10-08' });
+    // "Current" already existed and "groceries" matched the built-in category whatever its capitals.
+    expect(result.data.accounts.filter((account) => account.name === 'Current')).toHaveLength(1);
+    expect(result.data.transactions.at(-1)?.categoryId).toBe('cat_groceries');
+
+    const made = (name: string) => result.data.categories.find((category) => category.name === name)!;
+    expect(made('Restaurants').kind).toBe('expense');
+    expect(result.data.categoryGroups.find((group) => group.id === made('Restaurants').groupId)?.name).toBe('Imported');
+    expect(made('Paycheck')).toMatchObject({ kind: 'income', groupId: 'grp_income' });
+  });
+
+  it('brings in transfers, pending rows and tags, and only leaves the unsorted ones to review', () => {
+    const { data } = ops.importStatement(base(), rows, options);
+    expect(data.transactions.map((tx) => [tx.payee, tx.kind, tx.status, tx.reviewed, tx.tags])).toEqual([
+      ['Corner Bakery', 'standard', 'cleared', true, []],
+      ['Employer Inc', 'standard', 'cleared', true, []],
+      ['Card payment', 'transfer', 'cleared', true, []],
+      ['Card payment', 'transfer', 'cleared', true, []],
+      ['Hotel Alba', 'standard', 'pending', true, ['lisbon']],
+      ['Mystery', 'standard', 'cleared', false, []],
+      ['Groceries run', 'standard', 'cleared', true, []],
+    ]);
+  });
+
+  it('starts new accounts at zero, since the file has no balances, and moves existing ones only when asked', () => {
+    const moved = ops.importStatement(base(), rows, options).data;
+    const id = (data: AppData, name: string) => data.accounts.find((account) => account.name === name)!.id;
+    expect(balance(moved, id(moved, 'Sapphire Card'))).toBe(0);
+    expect(balance(moved, id(moved, 'Roth IRA'))).toBe(0);
+    expect(balance(moved, 'cur')).toBe(100000 - 450 + 325000 - 50000);
+    const kept = ops.importStatement(base(), rows, { ...options, keepBalance: true }).data;
+    expect(balance(kept, 'cur')).toBe(100000);
+  });
+
+  it('leaves categories alone when asked not to create them', () => {
+    const result = ops.importStatement(base(), rows, { ...options, createCategories: false });
+    expect(result.categoriesCreated).toEqual([]);
+    expect(result.data.transactions[0]).toMatchObject({ categoryId: null, reviewed: false });
+  });
+
+  it('sends everything to one chosen account when not splitting, and skips rows with nowhere to go', () => {
+    const single = ops.importStatement(base(), rows, { ...options, byAccount: false, accountId: 'sav' });
+    expect(single.accountsCreated).toEqual([]);
+    expect(new Set(single.data.transactions.map((tx) => tx.accountId))).toEqual(new Set(['sav']));
+    const nowhere = ops.importStatement(base(), rows, { ...options, byAccount: false });
+    expect(nowhere).toMatchObject({ imported: 0, skipped: 7 });
+    expect(ops.existingAccountFor(base(), { accountName: ' current ' }, { byAccount: true })).toBe('cur');
+    expect(ops.existingAccountFor(base(), { accountName: 'Nope' }, { byAccount: true, accountId: 'sav' })).toBeUndefined();
   });
 });

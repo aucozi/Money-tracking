@@ -50,6 +50,7 @@ interface Actions {
   updateTransactions: (ids: readonly ID[], patch: Partial<Pick<Transaction, 'categoryId' | 'reviewed' | 'status'>>) => void;
   deleteTransactions: (ids: readonly ID[]) => void;
   importTransactions: (accountId: ID, rows: readonly ImportRow[], options: { keepBalance: boolean }) => number;
+  importStatement: (rows: readonly ImportRow[], options: ops.StatementOptions) => Omit<ops.StatementOutcome, 'data'>;
 
   addRecurring: (input: ops.NewRecurring) => ID;
   updateRecurring: (id: ID, patch: Parameters<typeof ops.updateRecurring>[2]) => void;
@@ -136,6 +137,8 @@ export const useStore = create<Store>((set, get) => {
     updateTransactions: (ids, patch) => change((data) => ops.updateTransactions(data, ids, patch)),
     deleteTransactions: (ids) => change((data) => ops.deleteTransactions(data, ids)),
     importTransactions: (accountId, rows, options) => produce((data) => ops.importTransactions(data, accountId, rows, options)).imported,
+
+    importStatement: (rows, options) => produce((data) => ops.importStatement(data, rows, options)),
 
     addRecurring: (input) => produce((data) => ops.addRecurring(data, input)).id,
     updateRecurring: (id, patch) => change((data) => ops.updateRecurring(data, id, patch)),

@@ -1,3 +1,4 @@
+import { accountTypeFromName } from '@/domain/accounts';
 import { addDays, diffDays } from '@/domain/dates';
 import { accountBalances, openingBalanceFor } from '@/domain/networth';
 import { namesFor } from '@/domain/sync/simplefin';
@@ -50,14 +51,9 @@ function looksLike(local: Transaction, remote: RemoteTransaction): boolean {
   return names(local).some((mine) => candidates.some((theirs) => similarPayee(mine, theirs)));
 }
 
-/** Guess what kind of account this is from its name; the person can change it afterwards. */
+/** Guess what kind of account this is; one that reports holdings is an investment account whatever it is called. */
 export function guessAccountType(remote: Pick<RemoteAccount, 'name' | 'holdings' | 'balance'>): AccountType {
-  const name = remote.name.toLowerCase();
-  if (remote.holdings?.length || /invest|brokerage|401|\bira\b|\broth\b|pension|\bisa\b|\bstocks?\b|\bshares\b|retirement/.test(name)) return 'investment';
-  if (/credit|card|visa|mastercard|amex/.test(name)) return 'credit';
-  if (/loan|mortgage|lease/.test(name)) return 'loan';
-  if (/sav|deposit|money market|reserve/.test(name)) return 'savings';
-  return 'checking';
+  return remote.holdings?.length ? 'investment' : accountTypeFromName(remote.name);
 }
 
 export type LinkChoice = { kind: 'new' } | { kind: 'existing'; accountId: ID } | { kind: 'skip' };

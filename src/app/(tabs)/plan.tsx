@@ -6,6 +6,7 @@ import { ForecastView } from '@/features/plan/forecast';
 import { Goals } from '@/features/plan/goals';
 import { TabHeader } from '@/features/shared';
 import { Screen, Segmented } from '@/ui/primitives';
+import { easeNextLayout } from '@/ui/motion';
 
 type Section = 'bills' | 'forecast' | 'goals' | 'debt';
 
@@ -16,7 +17,10 @@ export default function Plan() {
       <TabHeader title="Plan" subtitle="What is coming, and where you are heading" />
       <Segmented
         value={section}
-        onChange={setSection}
+        onChange={(next) => {
+          easeNextLayout();
+          setSection(next);
+        }}
         options={[
           { value: 'bills', label: 'Bills' },
           { value: 'forecast', label: 'Forecast' },

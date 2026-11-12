@@ -17,6 +17,7 @@ import { Sheet, useConfirm, useToast } from '@/ui/overlays';
 import { AccountField, CategoryField, CategorySheet, DateField } from '@/ui/pickers';
 import { Button, Chip, EmptyState, Field, IconButton, Row, T } from '@/ui/primitives';
 import { continuous, radius, space, useTheme, WEB_TAB_BAR_SPACE } from '@/ui/theme';
+import { easeNextLayout } from '@/ui/motion';
 
 type Quick = 'all' | 'review' | 'pending' | 'uncategorized' | 'expense' | 'income' | 'transfer';
 
@@ -273,7 +274,14 @@ export default function Transactions() {
                       })
                 }
                 onLongPress={() => toggle(item.tx.id)}
-                onReview={quick === 'review' ? () => updateTransactions([item.tx.id], { reviewed: true }) : undefined}
+                onReview={
+                  quick === 'review'
+                    ? () => {
+                        easeNextLayout();
+                        updateTransactions([item.tx.id], { reviewed: true });
+                      }
+                    : undefined
+                }
               />
             </View>
           )

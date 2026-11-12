@@ -1,57 +1,69 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { haptic } from '@/platform/haptics';
 
 import { Glass, hasLiquidGlass } from './glass';
+import { DropIn, KeyboardAvoider } from './motion';
 import { Button, IconButton, OnBackground, Row, T } from './primitives';
 import { continuous, radius, space, useTheme } from './theme';
 
-/** A panel that slides up from the bottom, for pickers and short forms. */
-export function Sheet({
-  visible,
-  onClose,
-  title,
-  children,
-  footer,
-  testID,
-}: {
+interface SheetProps {
   visible: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
   footer?: ReactNode;
   testID?: string;
-}) {
+}
+
+/** A panel that slides up from the bottom, for pickers and short forms. */
+export function Sheet({ visible, onClose, ...rest }: SheetProps) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+      {/*
+        A modal is its own window. Measuring the safe area again here gives the
+        gap for the home indicator, not the one for the tab bar that the screen
+        underneath reports.
+      */}
+      <SafeAreaProvider>
+        <SheetPanel visible={visible} onClose={onClose} {...rest} />
+      </SafeAreaProvider>
+    </Modal>
+  );
+}
+
+function SheetPanel({ onClose, title, children, footer, testID }: SheetProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.fill}>
-        <Pressable accessibilityLabel="Close" style={[styles.fill, { backgroundColor: c.overlay }]} onPress={onClose} />
-        {/* A sheet floats: inset from the edges, with corners that follow the screen's own. */}
-        <View style={[styles.sheetDock, { paddingBottom: Math.max(insets.bottom, space.sm) }]} pointerEvents="box-none">
-          <Glass testID={testID} style={[styles.sheet, !hasLiquidGlass && { backgroundColor: c.bg }]}>
-            <View accessibilityViewIsModal style={styles.sheetInner}>
-              <View style={[styles.grabber, { backgroundColor: c.textFaint }]} />
-              <Row style={styles.sheetHeader}>
-                <T variant="heading" style={styles.flex} accessibilityRole="header">
-                  {title}
-                </T>
-                <IconButton icon="close" label="Close" onPress={onClose} size={16} />
-              </Row>
-              <OnBackground>
-                <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.sheetBody}>
-                  {children}
-                </ScrollView>
-                {footer ? <View style={styles.sheetFooter}>{footer}</View> : null}
-              </OnBackground>
-            </View>
-          </Glass>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+    <KeyboardAvoider style={styles.sheetStage}>
+      {/* The dim covers everything, including the strip beside and below the sheet. */}
+      <Pressable accessibilityLabel="Close" style={[StyleSheet.absoluteFill, { backgroundColor: c.overlay }]} onPress={onClose} />
+      {/* A sheet floats: inset from the edges, with corners that follow the screen's own. */}
+      <View style={[styles.sheetDock, { paddingBottom: Math.max(insets.bottom, space.sm) }]} pointerEvents="box-none">
+        <Glass testID={testID} style={[styles.sheet, !hasLiquidGlass && { backgroundColor: c.bg }]}>
+          {/* Glass alone lets the screen behind show through the form; this keeps the sheet readable. */}
+          {hasLiquidGlass ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: c.bg, opacity: 0.88 }]} /> : null}
+          <View accessibilityViewIsModal style={styles.sheetInner}>
+            <View style={[styles.grabber, { backgroundColor: c.textFaint }]} />
+            <Row style={styles.sheetHeader}>
+              <T variant="heading" style={styles.flex} accessibilityRole="header">
+                {title}
+              </T>
+              <IconButton icon="close" label="Close" onPress={onClose} size={16} />
+            </Row>
+            <OnBackground>
+              <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" contentContainerStyle={styles.sheetBody}>
+                {children}
+              </ScrollView>
+              {footer ? <View style={styles.sheetFooter}>{footer}</View> : null}
+            </OnBackground>
+          </View>
+        </Glass>
+      </View>
+    </KeyboardAvoider>
   );
 }
 
@@ -85,13 +97,15 @@ export function ToastHost({ testID }: { testID?: string }) {
   if (!message) return null;
   return (
     <View pointerEvents="none" style={[styles.toastWrap, { top: insets.top + space.sm }]}>
-      <Glass style={styles.toast}>
-        <View accessibilityLiveRegion="polite" accessibilityRole="alert" testID={testID}>
-          <T variant="label" weight="600" center>
-            {message}
-          </T>
-        </View>
-      </Glass>
+      <DropIn key={message}>
+        <Glass style={styles.toast}>
+          <View accessibilityLiveRegion="polite" accessibilityRole="alert" testID={testID}>
+            <T variant="label" weight="600" center>
+              {message}
+            </T>
+          </View>
+        </Glass>
+      </DropIn>
     </View>
   );
 }
@@ -198,13 +212,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: space.xl,
   },
-  sheetDock: {
-    maxHeight: '90%',
-    width: '100%',
-    maxWidth: 560,
-    alignSelf: 'center',
-    paddingHorizontal: space.sm,
-  },
+  sheetStage: { flex: 1, justifyContent: 'flex-end' },
+  sheetDock: { maxHeight: '90%', width: '100%', maxWidth: 560, alignSelf: 'center', paddingHorizontal: space.sm },
   sheet: { borderRadius: radius.xl, overflow: 'hidden', flexShrink: 1 },
   sheetInner: { flexShrink: 1, paddingBottom: space.lg },
   grabber: {

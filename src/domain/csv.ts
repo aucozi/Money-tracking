@@ -1,6 +1,7 @@
 import { detectDateOrder, parseFlexibleDate, type DateOrder } from './dates';
 import { parseAmount } from './money';
 import { cleanPayee } from './rules';
+import { parseTags } from './transactions';
 import type { CurrencyCode, ISODate } from './types';
 
 const DELIMITERS = [',', ';', '\t', '|'] as const;
@@ -109,7 +110,7 @@ export interface CsvFile {
   lines: number[];
 }
 
-export type Field = 'date' | 'payee' | 'amount' | 'debit' | 'credit' | 'category' | 'notes' | 'currency';
+export type Field = 'date' | 'payee' | 'amount' | 'debit' | 'credit' | 'category' | 'notes' | 'currency' | 'account' | 'type' | 'status' | 'tags' | 'excluded';
 
 const SYNONYMS: Record<Field, string[]> = {
   date: [
@@ -179,6 +180,12 @@ const SYNONYMS: Record<Field, string[]> = {
   category: ['category', 'kategorie', 'categoria', 'kategorija', 'categorie'],
   notes: ['notes', 'note', 'memo', 'comment', 'comments', 'message', 'pastabos'],
   currency: ['currency', 'ccy', 'valiuta', 'wahrung', 'moneda', 'devise', 'waluta'],
+  // These are only recognised by their exact header, so an "Account number" column is not mistaken for one.
+  account: ['account', 'account name'],
+  type: ['type', 'transaction type'],
+  status: ['status'],
+  tags: ['tags', 'labels'],
+  excluded: ['excluded'],
 };
 
 function normaliseHeader(header: string): string {
@@ -301,7 +308,23 @@ export interface ImportOptions {
   decimal: '.' | ',' | 'auto';
   /** For exports that list purchases as positive numbers (many credit cards do). */
   flipSign: boolean;
+  /** Set when the file is recognised as another app's export, which unlocks what its extra columns mean. */
+  profile?: ImportProfile;
 }
+
+export type ImportProfile = 'copilot';
+
+/**
+ * Recognise an export from another money app by its header. Copilot's has an
+ * "account mask" column that bank exports do not.
+ */
+export function detectProfile(file: CsvFile): ImportProfile | undefined {
+  const headers = file.headers.map(normaliseHeader);
+  if (headers.includes('account mask') || (headers.includes('parent category') && headers.includes('excluded'))) return 'copilot';
+  return undefined;
+}
+
+const truthy = (value: string) => /^(true|yes|1)$/i.test(value.trim());
 
 export interface ImportRow {
   line: number;
@@ -312,6 +335,12 @@ export interface ImportRow {
   categoryName?: string;
   notes?: string;
   currency?: string;
+  /** The account the file says this row belongs to, for exports that cover several. */
+  accountName?: string;
+  /** Money moving between the person's own accounts, or a row the source app left out of spending. */
+  transfer?: boolean;
+  pending?: boolean;
+  tags?: string[];
 }
 
 export interface ImportResult {
@@ -323,11 +352,22 @@ export interface ImportResult {
 export function inferOptions(file: CsvFile, mapping: ColumnMapping, currency: CurrencyCode, fallbackOrder: DateOrder = 'MDY'): ImportOptions {
   const column = (index: number | undefined) => (index === undefined ? [] : file.rows.map((row) => row[index] ?? ''));
   const amounts = [...column(mapping.amount), ...column(mapping.debit), ...column(mapping.credit)].filter(Boolean);
+  const profile = detectProfile(file);
+  const decimal = detectDecimal(amounts);
+  let flipSign = false;
+  if (profile === 'copilot' && mapping.amount !== undefined) {
+    // Copilot writes spending as positive numbers. Its "type" column lets the file confirm that itself:
+    // if the rows it calls income are negative, the signs need turning round.
+    const incomes = mapping.type === undefined ? [] : file.rows.filter((row) => /^income$/i.test((row[mapping.type as number] ?? '').trim()));
+    const negative = incomes.filter((row) => (parseAmount(row[mapping.amount as number] ?? '', currency, { decimal }) ?? 0) < 0).length;
+    flipSign = incomes.length === 0 ? true : negative * 2 >= incomes.length;
+  }
   return {
     currency,
     dateOrder: detectDateOrder(column(mapping.date), fallbackOrder),
-    decimal: detectDecimal(amounts),
-    flipSign: false,
+    decimal,
+    flipSign,
+    profile,
   };
 }
 
@@ -372,15 +412,22 @@ export function buildImportRows(file: CsvFile, mapping: ColumnMapping, options: 
     if (options.flipSign) amount = -amount;
 
     const rawPayee = cell(mapping.payee).replace(/\s+/g, ' ');
+    // In a Copilot export, internal transfers and rows marked "excluded" were left out of spending there too.
+    const transfer = options.profile === 'copilot' && (/transfer/i.test(cell(mapping.type)) || truthy(cell(mapping.excluded)));
+    const tags = parseTags(cell(mapping.tags));
     result.rows.push({
       line,
       date,
       amount,
       rawPayee,
       payee: cleanPayee(rawPayee) || 'Unknown',
-      categoryName: cell(mapping.category) || undefined,
+      categoryName: transfer ? undefined : cell(mapping.category) || undefined,
       notes: cell(mapping.notes) || undefined,
       currency: cell(mapping.currency).toUpperCase() || undefined,
+      accountName: cell(mapping.account) || undefined,
+      transfer: transfer || undefined,
+      pending: /^pending$/i.test(cell(mapping.status)) || undefined,
+      tags: tags.length > 0 ? tags : undefined,
     });
   });
   return result;

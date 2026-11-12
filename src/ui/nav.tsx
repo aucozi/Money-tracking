@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import { Stack } from 'expo-router/stack';
 import { type ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
+import { KeyboardAvoider } from './motion';
 import { ToastHost } from './overlays';
 import { IconButton, Screen } from './primitives';
 
@@ -36,11 +37,11 @@ export function ModalScreen({
           headerRight: headerRight ? () => headerRight : undefined,
         }}
       />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex} keyboardVerticalOffset={64}>
+      <KeyboardAvoider style={styles.flex}>
         <Screen edges={['bottom']} footer={footer} testID={testID}>
           {children}
         </Screen>
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
       {/* On a phone this screen is a sheet that covers the app's own toast, so it shows one itself. */}
       {Platform.OS !== 'web' ? <ToastHost /> : null}
     </>

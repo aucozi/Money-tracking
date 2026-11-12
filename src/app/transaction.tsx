@@ -14,6 +14,7 @@ import { useConfirm, useToast } from '@/ui/overlays';
 import { AccountField, AmountField, CategoryField, DateField, FormActions, OptionField } from '@/ui/pickers';
 import { Button, Card, Field, IconButton, Notice, Row, Segmented, T, ToggleRow } from '@/ui/primitives';
 import { space } from '@/ui/theme';
+import { easeNextLayout } from '@/ui/motion';
 
 type EntryType = 'expense' | 'income' | 'transfer';
 
@@ -288,7 +289,16 @@ export default function TransactionScreen() {
       ) : null}
 
       {!showMore ? (
-        <Button label="Notes, tags, split and more" kind="ghost" icon="chevron-down" onPress={() => setShowMore(true)} testID="show-more" />
+        <Button
+          label="Notes, tags, split and more"
+          kind="ghost"
+          icon="chevron-down"
+          onPress={() => {
+            easeNextLayout();
+            setShowMore(true);
+          }}
+          testID="show-more"
+        />
       ) : (
         <Card>
           <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Anything worth remembering" multiline testID="notes-input" />

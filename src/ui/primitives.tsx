@@ -1,5 +1,6 @@
 import { Children, createContext, isValidElement, useContext, useState, type ReactNode } from 'react';
 import {
+  Animated,
   Platform,
   Pressable,
   RefreshControl,
@@ -22,6 +23,7 @@ import { haptic } from '@/platform/haptics';
 
 import { Glass, hasLiquidGlass } from './glass';
 import { Icon, type IconName } from './icon';
+import { useEased, usePressScale } from './motion';
 import { continuous, radius, roundedFont, space, useTheme, WEB_TAB_BAR_SPACE, type Palette } from './theme';
 
 export type { IconName };
@@ -143,6 +145,7 @@ export function Screen({
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           contentInsetAdjustmentBehavior="automatic"
           refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.textMuted} /> : undefined}
           showsVerticalScrollIndicator={false}
@@ -270,8 +273,9 @@ export function Button({
   // One filled, coloured button per screen for the main action; the rest are quieter.
   const background = kind === 'primary' ? c.accent : kind === 'danger' ? c.negativeSoft : kind === 'secondary' ? c.accentSoft : 'transparent';
   const color = kind === 'primary' ? c.onAccent : kind === 'danger' ? c.negative : c.accent;
+  const press = usePressScale(small ? 0.94 : 0.97);
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
@@ -280,22 +284,16 @@ export function Button({
         if (kind === 'primary') haptic.tap();
         onPress();
       }}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       testID={testID}
-      style={({ pressed }) => [
-        styles.button,
-        small && styles.buttonSmall,
-        {
-          backgroundColor: background,
-          opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
-        },
-        style,
-      ]}
+      style={[styles.button, small && styles.buttonSmall, { backgroundColor: background, opacity: disabled ? 0.4 : 1 }, style, press.style]}
     >
       {icon ? <Icon name={icon} size={small ? 15 : 18} color={color} /> : null}
       <Text numberOfLines={1} style={[small ? styles.buttonLabelSmall : styles.buttonLabel, { color }]}>
         {label}
       </Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -322,21 +320,20 @@ export function IconButton({
 }) {
   const { c } = useTheme();
   const glyph = <Icon name={icon} size={size} color={toneColor(c, tone)} />;
+  const press = usePressScale(0.88);
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       disabled={disabled}
-      hitSlop={6}
+      // The target is larger than the drawing, so a near miss still lands.
+      hitSlop={8}
       onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       testID={testID}
-      // Real glass must stay fully opaque to render, so it shows presses itself.
-      style={({ pressed }) => [
-        styles.iconButton,
-        {
-          opacity: disabled ? 0.35 : pressed && !(filled && hasLiquidGlass) ? 0.55 : 1,
-        },
-      ]}
+      // Real glass must stay fully opaque to render, so only a plain icon is dimmed when disabled.
+      style={[styles.iconButton, { opacity: disabled && !(filled && hasLiquidGlass) ? 0.35 : 1 }, press.style]}
     >
       {filled ? (
         <Glass interactive style={styles.iconButtonGlass}>
@@ -345,7 +342,7 @@ export function IconButton({
       ) : (
         glyph
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -364,8 +361,9 @@ export function Chip({
 }) {
   const { c } = useTheme();
   const color = selected ? c.onAccent : c.text;
+  const press = usePressScale(0.94);
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected: !!selected }}
@@ -373,18 +371,14 @@ export function Chip({
         haptic.select();
         onPress?.();
       }}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       testID={testID}
-      style={({ pressed }) => [
-        styles.chip,
-        {
-          backgroundColor: selected ? c.accent : c.surface,
-          opacity: pressed ? 0.7 : 1,
-        },
-      ]}
+      style={[styles.chip, { backgroundColor: selected ? c.accent : c.surface }, press.style]}
     >
       {icon ? <Icon name={icon} size={14} color={color} /> : null}
       <Text style={[VARIANTS.label, styles.medium, { color }]}>{label}</Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -429,15 +423,17 @@ export function Segmented<V extends string>({
 export function ProgressBar({ fraction, color, height = 8 }: { fraction: number; color?: string; height?: number }) {
   const { c } = useTheme();
   const clamped = Math.max(0, Math.min(1, Number.isFinite(fraction) ? fraction : 0));
+  // The bar eases to a new value, so a change in spending is seen to happen rather than just appearing.
+  const eased = useEased(clamped);
   return (
     <View
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max: 100, now: Math.round(clamped * 100) }}
       style={[styles.progressTrack, { backgroundColor: c.surfaceAlt, height, borderRadius: height / 2 }]}
     >
-      <View
+      <Animated.View
         style={{
-          width: `${clamped * 100}%`,
+          width: eased.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
           height,
           borderRadius: height / 2,
           backgroundColor: color ?? c.accent,
@@ -730,6 +726,8 @@ export function Notice({
     </View>
   );
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // The focused field is shown by its border; the browser's own outline would double it up.
 const webNoOutline = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null;

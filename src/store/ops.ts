@@ -1,3 +1,4 @@
+import { accountTypeFromName } from '@/domain/accounts';
 import { setBudgetAmount } from '@/domain/budget';
 import { newId } from '@/domain/context';
 import type { ImportRow } from '@/domain/csv';
@@ -356,8 +357,11 @@ export function importTransactions(data: AppData, accountId: ID, rows: readonly 
         amount: row.amount,
         payee: row.payee,
         rawPayee: row.rawPayee && row.rawPayee !== row.payee ? row.rawPayee : undefined,
-        categoryId: (row.categoryName && categoryByName.get(row.categoryName.toLowerCase())) || null,
+        categoryId: (!row.transfer && row.categoryName && categoryByName.get(row.categoryName.toLowerCase())) || null,
         notes: row.notes,
+        tags: row.tags ?? [],
+        status: row.pending ? 'pending' : 'cleared',
+        kind: row.transfer ? 'transfer' : 'standard',
         reviewed: false,
       }),
     );
@@ -370,6 +374,137 @@ export function importTransactions(data: AppData, accountId: ID, rows: readonly 
     next = updateAccount(next, accountId, { openingBalance: account.openingBalance - total });
   }
   return { data: next, imported: added.length, ids: added.map((tx) => tx.id) };
+}
+
+export interface StatementOptions {
+  /** Where rows go when the file does not say, or when `byAccount` is off. */
+  accountId?: ID;
+  /** Send each row to the account the file names, creating accounts that do not exist yet. */
+  byAccount: boolean;
+  /** Create categories the file uses that do not exist yet, instead of leaving those rows uncategorised. */
+  createCategories: boolean;
+  /** Treat the rows as history the balance already includes. New accounts always are: their balance is not in the file. */
+  keepBalance: boolean;
+  today: ISODate;
+}
+
+export interface StatementOutcome {
+  data: AppData;
+  imported: number;
+  /** Rows that had nowhere to go: no account named in the file and none chosen. */
+  skipped: number;
+  accountsCreated: string[];
+  categoriesCreated: string[];
+}
+
+const nameKey = (name: string) => name.trim().toLowerCase();
+
+/** The existing account a row would go to, if any. Used to check for duplicates before importing. */
+export function existingAccountFor(
+  data: AppData,
+  row: Pick<ImportRow, 'accountName'>,
+  options: Pick<StatementOptions, 'accountId' | 'byAccount'>,
+): ID | undefined {
+  if (options.byAccount && row.accountName) {
+    return data.accounts.find((account) => !account.archived && nameKey(account.name) === nameKey(row.accountName as string))?.id;
+  }
+  return options.accountId;
+}
+
+/**
+ * Import a file that may cover several accounts, such as another app's export.
+ * Rows that already carry a category (or are transfers) come in as reviewed:
+ * they were sorted once already. The rest wait in the review inbox.
+ */
+export function importStatement(data: AppData, rows: readonly ImportRow[], options: StatementOptions): StatementOutcome {
+  let next = data;
+  const accountsCreated: string[] = [];
+  const categoriesCreated: string[] = [];
+  const fresh = new Set<ID>();
+  const totals = new Map<ID, number>();
+  const earliest = new Map<ID, ISODate>();
+  const added: Transaction[] = [];
+  let skipped = 0;
+
+  const accountFor = (row: ImportRow): ID | undefined => {
+    const found = existingAccountFor(next, row, options);
+    if (found || !options.byAccount || !row.accountName) return found;
+    const created = addAccount(next, {
+      name: row.accountName,
+      type: accountTypeFromName(row.accountName),
+      currency: row.currency && /^[A-Z]{3}$/.test(row.currency) ? row.currency : next.settings.baseCurrency,
+      openingBalance: 0,
+      openingDate: options.today,
+    });
+    next = created.data;
+    fresh.add(created.id);
+    accountsCreated.push(row.accountName.trim());
+    return created.id;
+  };
+
+  const categoryFor = (row: ImportRow): ID | null => {
+    if (!row.categoryName || row.transfer) return null;
+    const existing = next.categories.find((category) => !category.archived && nameKey(category.name) === nameKey(row.categoryName as string));
+    if (existing) return existing.id;
+    if (!options.createCategories) return null;
+    const kind: CategoryKind = row.amount > 0 ? 'income' : 'expense';
+    let group = next.categoryGroups.find((item) => item.kind === kind && (kind === 'income' || item.name === 'Imported'));
+    if (!group) {
+      const made = addGroup(next, kind === 'income' ? 'Income' : 'Imported', kind);
+      next = made.data;
+      group = next.categoryGroups.find((item) => item.id === made.id);
+    }
+    if (!group) return null;
+    const created = addCategory(next, { name: row.categoryName, groupId: group.id, icon: '🏷️' });
+    next = created.data;
+    categoriesCreated.push(row.categoryName.trim());
+    return created.id;
+  };
+
+  for (const row of rows) {
+    const accountId = accountFor(row);
+    if (!accountId) {
+      skipped += 1;
+      continue;
+    }
+    const categoryId = categoryFor(row);
+    const tx = automate(
+      next,
+      build({
+        accountId,
+        date: row.date,
+        amount: row.amount,
+        payee: row.payee,
+        rawPayee: row.rawPayee && row.rawPayee !== row.payee ? row.rawPayee : undefined,
+        categoryId,
+        notes: row.notes,
+        tags: row.tags ?? [],
+        status: row.pending ? 'pending' : 'cleared',
+        kind: row.transfer ? 'transfer' : 'standard',
+        reviewed: Boolean(row.transfer || categoryId),
+      }),
+    );
+    added.push(tx);
+    totals.set(accountId, (totals.get(accountId) ?? 0) + tx.amount);
+    if (!earliest.has(accountId) || row.date < (earliest.get(accountId) as ISODate)) earliest.set(accountId, row.date);
+  }
+
+  next = {
+    ...next,
+    transactions: [...next.transactions, ...added],
+    accounts: next.accounts.map((account) => {
+      const total = totals.get(account.id);
+      if (total === undefined) return account;
+      const isNew = fresh.has(account.id);
+      return {
+        ...account,
+        // A new account opens on the day of its first transaction, so history charts cover it.
+        openingDate: isNew ? (earliest.get(account.id) ?? account.openingDate) : account.openingDate,
+        openingBalance: isNew || options.keepBalance ? account.openingBalance - total : account.openingBalance,
+      };
+    }),
+  };
+  return { data: next, imported: added.length, skipped, accountsCreated, categoriesCreated };
 }
 
 // ── Recurring ───────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { formatMoney } from '@/domain/money';
@@ -9,8 +9,9 @@ import type { Account, AccountType, Category, Transaction } from '@/domain/types
 import { useData, useUi } from '@/store/hooks';
 import { Glyph, IconButton, ListItem, Money, Pill, Row, T } from '@/ui/primitives';
 import { haptic } from '@/platform/haptics';
-import { Glass, hasLiquidGlass } from '@/ui/glass';
+import { Glass } from '@/ui/glass';
 import { Icon } from '@/ui/icon';
+import { usePressScale } from '@/ui/motion';
 import { space, useTheme, WEB_TAB_BAR_SPACE } from '@/ui/theme';
 
 export const ACCOUNT_TYPES: {
@@ -140,22 +141,28 @@ export function FloatingDock({ children, align = 'flex-end' }: { children: React
 /** The add button: the one tinted glass control on the screen. */
 export function Fab({ onPress, label = 'Add transaction', testID = 'fab' }: { onPress: () => void; label?: string; testID?: string }) {
   const { c } = useTheme();
+  const press = usePressScale(0.9);
   return (
     <FloatingDock>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        onPress={() => {
-          haptic.tap();
-          onPress();
-        }}
-        testID={testID}
-        style={({ pressed }) => [styles.fabPress, { opacity: pressed && !hasLiquidGlass ? 0.8 : 1 }]}
-      >
-        <Glass tint={c.accent} interactive style={styles.fab}>
-          <Icon name="add" size={26} color={c.onAccent} />
-        </Glass>
-      </Pressable>
+      <Animated.View style={press.style}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          hitSlop={8}
+          onPress={() => {
+            haptic.tap();
+            onPress();
+          }}
+          onPressIn={press.onPressIn}
+          onPressOut={press.onPressOut}
+          testID={testID}
+          style={styles.fabPress}
+        >
+          <Glass tint={c.accent} interactive style={styles.fab}>
+            <Icon name="add" size={26} color={c.onAccent} />
+          </Glass>
+        </Pressable>
+      </Animated.View>
     </FloatingDock>
   );
 }

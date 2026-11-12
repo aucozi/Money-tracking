@@ -194,3 +194,36 @@ test('categories can be added and used straight away', async ({ page }) => {
   await goToTab(page, 'budget');
   await expect(page.getByTestId(`budget-row-${pets.id}`)).toContainText('$30.00');
 });
+
+test('a Copilot export brings its own accounts and categories, even into an empty app', async ({ page }) => {
+  await open(page);
+  await page.getByTestId('start-fresh').click();
+  await goToTab(page, 'transactions');
+  await page.getByTestId('open-import').click();
+  await page.getByTestId('csv-text').fill(
+    [
+      'date,name,amount,status,category,parent category,excluded,tags,type,account,account mask,note,recurring',
+      '2026-11-03,Corner Bakery,4.50,posted,Restaurants,Food & Drink,false,,regular,Chase Checking,1234,,',
+      '2026-11-04,Employer Inc,-3250.00,posted,Paycheck,Income,false,,income,Chase Checking,1234,,',
+      '2026-11-05,Credit Card Payment,500.00,posted,,,false,,internal transfer,Chase Checking,1234,,',
+      '2026-11-05,Credit Card Payment,-500.00,posted,,,false,,internal transfer,Sapphire Card,9876,,',
+      '2026-11-06,Hotel Alba,142.50,pending,Travel,,false,lisbon,regular,Sapphire Card,9876,,',
+    ].join('\n'),
+  );
+
+  await expect(page.getByText('This looks like a Copilot export')).toBeVisible();
+  await expect(page.getByText(/Will create: Chase Checking, Sapphire Card/)).toBeVisible();
+  await expect(page.getByText('5 to import')).toBeVisible();
+  await page.getByTestId('run-import').click();
+  await expect(page.getByTestId('toast')).toContainText('Imported 5 transactions into 2 new accounts');
+
+  // Spending is the bakery and the hotel; the card payment is a transfer, not spending, and income is income.
+  await expect(page.getByTestId('tx-summary')).toContainText('5 transactions · $147.00 out · $3,250.00 in');
+  const data = await savedData(page);
+  expect(data.accounts.map((account: { name: string; type: string }) => [account.name, account.type])).toEqual([
+    ['Chase Checking', 'checking'],
+    ['Sapphire Card', 'credit'],
+  ]);
+  expect(data.transactions.filter((tx: { kind: string }) => tx.kind === 'transfer')).toHaveLength(2);
+  expect(data.categories.some((category: { name: string }) => category.name === 'Restaurants')).toBe(true);
+});

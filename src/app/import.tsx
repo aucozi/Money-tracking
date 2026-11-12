@@ -3,12 +3,14 @@ import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { buildImportRows, inferMapping, inferOptions, readCSV, type ColumnMapping, type Field as CsvField, type ImportOptions } from '@/domain/csv';
+import { todayISO } from '@/domain/dates';
 import { formatDate, type DateOrder } from '@/domain/dates';
 import { formatMoney } from '@/domain/money';
 import { findDuplicates } from '@/domain/transactions';
 import { showTransactions } from '@/features/shared';
 import { pickTextFile } from '@/platform/files';
 import { useData } from '@/store/hooks';
+import { existingAccountFor } from '@/store/ops';
 import { useStore } from '@/store/store';
 import { ModalScreen } from '@/ui/nav';
 import { useToast } from '@/ui/overlays';
@@ -24,6 +26,7 @@ const COLUMNS: { field: CsvField; label: string }[] = [
   { field: 'credit', label: 'Money in' },
   { field: 'category', label: 'Category' },
   { field: 'notes', label: 'Notes' },
+  { field: 'account', label: 'Account' },
 ];
 
 function fallbackOrder(): DateOrder {
@@ -38,6 +41,7 @@ export default function ImportScreen() {
   const data = useData();
   const toast = useToast();
   const importTransactions = useStore((state) => state.importTransactions);
+  const importStatement = useStore((state) => state.importStatement);
   const openAccounts = data.accounts.filter((account) => !account.archived);
   const [accountId, setAccountId] = useState<string | undefined>(openAccounts[0]?.id);
   const [text, setText] = useState('');
@@ -46,6 +50,7 @@ export default function ImportScreen() {
   const [options, setOptions] = useState<ImportOptions | null>(null);
   const [keepBalance, setKeepBalance] = useState<boolean | null>(null);
   const [includeLikely, setIncludeLikely] = useState(false);
+  const [splitByAccount, setSplitByAccount] = useState<boolean | null>(null);
 
   const account = data.accounts.find((item) => item.id === accountId);
   const currency = account?.currency ?? data.settings.baseCurrency;
@@ -69,16 +74,16 @@ export default function ImportScreen() {
     [options, currency],
   );
   const result = useMemo(() => buildImportRows(file, mapping, effective), [file, mapping, effective]);
-  const duplicates = useMemo(
-    () =>
-      accountId
-        ? findDuplicates(
-            result.rows.map((row) => ({ ...row, accountId })),
-            data.transactions,
-          )
-        : result.rows.map(() => null),
-    [result.rows, accountId, data.transactions],
-  );
+  const isCopilot = effective.profile === 'copilot';
+  const namedAccounts = useMemo(() => [...new Set(result.rows.map((row) => row.accountName).filter(Boolean))] as string[], [result.rows]);
+  // A file that names accounts (another app's export) is split across them. A single bank's export goes into one.
+  const byAccount = mapping.account !== undefined && namedAccounts.length > 0 && (splitByAccount ?? isCopilot);
+  const duplicates = useMemo(() => {
+    // Rows bound for accounts that do not exist yet cannot be duplicates; give those a key nothing matches.
+    const placed = result.rows.map((row) => ({ ...row, accountId: existingAccountFor(data, row, { accountId, byAccount }) ?? `new:${row.accountName ?? ''}` }));
+    return findDuplicates(placed, data.transactions);
+  }, [result.rows, accountId, byAccount, data]);
+  const newAccounts = byAccount ? namedAccounts.filter((name) => !existingAccountFor(data, { accountName: name }, { byAccount: true })) : [];
   const chosen = result.rows.filter((_, index) => duplicates[index] === null || (includeLikely && duplicates[index] === 'likely'));
   const exact = duplicates.filter((kind) => kind === 'exact').length;
   const likely = duplicates.filter((kind) => kind === 'likely').length;
@@ -104,20 +109,24 @@ export default function ImportScreen() {
     }
   };
 
+  const canImport = chosen.length > 0 && (byAccount || Boolean(account));
+
   const run = () => {
-    if (!account || chosen.length === 0) return;
+    if (!canImport) return;
+    if (byAccount) {
+      const outcome = importStatement(chosen, { accountId, byAccount: true, createCategories: true, keepBalance: keep, today: todayISO() });
+      const made = outcome.accountsCreated.length;
+      toast(
+        `Imported ${outcome.imported} ${outcome.imported === 1 ? 'transaction' : 'transactions'}${made ? ` into ${made} new ${made === 1 ? 'account' : 'accounts'}` : ''}`,
+      );
+      showTransactions({});
+      return;
+    }
+    if (!account) return;
     const count = importTransactions(account.id, chosen, { keepBalance: keep });
     toast(`Imported ${count} ${count === 1 ? 'transaction' : 'transactions'}`);
     showTransactions({ accountIds: [account.id], needsReview: true });
   };
-
-  if (openAccounts.length === 0) {
-    return (
-      <ModalScreen title="Import from CSV">
-        <Notice tone="accent" title="Add an account first" body="Imported transactions need an account to go into." />
-      </ModalScreen>
-    );
-  }
 
   return (
     <ModalScreen
@@ -127,7 +136,7 @@ export default function ImportScreen() {
         <Button
           label={chosen.length > 0 ? `Import ${chosen.length} ${chosen.length === 1 ? 'transaction' : 'transactions'}` : 'Nothing to import yet'}
           onPress={run}
-          disabled={chosen.length === 0 || !account}
+          disabled={!canImport}
           testID="run-import"
         />
       }
@@ -135,7 +144,15 @@ export default function ImportScreen() {
       <T tone="muted">
         Download a CSV export from your bank&apos;s website or app, from any bank in any country, and bring it in here. Nothing leaves this device.
       </T>
-      <AccountField label="Import into" value={accountId} onChange={(id) => setAccountId(id)} />
+      {openAccounts.length > 0 ? (
+        <AccountField label={byAccount ? 'Rows with no account named go into' : 'Import into'} value={accountId} onChange={(id) => setAccountId(id)} />
+      ) : !byAccount ? (
+        <Notice
+          tone="accent"
+          title="Add an account first, or import a file that names its accounts"
+          body="A bank's export goes into one account, so that account has to exist. An export from another money app, such as Copilot, names its own accounts and creates them here."
+        />
+      ) : null}
       <Button label={fileName ? `Chosen: ${fileName}` : 'Choose a CSV file'} kind="secondary" icon="document-outline" onPress={pick} testID="pick-file" />
       <Field
         label="Or paste the file's contents"
@@ -151,6 +168,28 @@ export default function ImportScreen() {
 
       {file.rows.length > 0 ? (
         <>
+          {isCopilot ? (
+            <Notice
+              tone="positive"
+              title="This looks like a Copilot export"
+              body="Its accounts and categories are created here if you do not have them. Internal transfers and anything Copilot excluded come in as transfers, so they stay out of your spending. Transactions that already have a category arrive as reviewed."
+            />
+          ) : null}
+          {mapping.account !== undefined && namedAccounts.length > 0 ? (
+            <ToggleRow
+              label={`Split across the ${namedAccounts.length} ${namedAccounts.length === 1 ? 'account' : 'accounts'} this file names`}
+              hint={
+                byAccount
+                  ? newAccounts.length > 0
+                    ? `Will create: ${newAccounts.slice(0, 4).join(', ')}${newAccounts.length > 4 ? ` and ${newAccounts.length - 4} more` : ''}. The file does not include balances, so new accounts start at zero. Set each one's balance afterwards under Accounts.`
+                    : 'Every account in the file already exists here, matched by name.'
+                  : 'Off: everything goes into the one account chosen above.'
+              }
+              value={byAccount}
+              onChange={setSplitByAccount}
+              testID="split-by-account"
+            />
+          ) : null}
           <SectionTitle>Check the columns</SectionTitle>
           <Card>
             {COLUMNS.map((column) => (
@@ -220,7 +259,7 @@ export default function ImportScreen() {
             hint={
               keep
                 ? 'These are treated as history your current balance already includes.'
-                : `These are treated as new activity and will change the balance of ${account?.name ?? 'the account'}.`
+                : `These are treated as new activity and will change the balance of ${byAccount ? 'the accounts you already have' : (account?.name ?? 'the account')}.`
             }
             value={keep}
             onChange={setKeepBalance}

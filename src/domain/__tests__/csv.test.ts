@@ -1,4 +1,4 @@
-import { buildImportRows, detectDecimal, detectDelimiter, inferMapping, inferOptions, parseCSV, readCSV, toCSV } from '../csv';
+import { buildImportRows, detectDecimal, detectDelimiter, detectProfile, inferMapping, inferOptions, parseCSV, readCSV, toCSV } from '../csv';
 
 describe('parseCSV', () => {
   it('parses plain rows', () => {
@@ -205,5 +205,72 @@ describe('toCSV', () => {
 
   it('defuses spreadsheet formulas but leaves plain numbers alone', () => {
     expect(toCSV([['=SUM(A1:A9)', '+cmd', '@handle', '-12.50', '+3', '-Discount']])).toBe("'=SUM(A1:A9),'+cmd,'@handle,-12.50,+3,'-Discount");
+  });
+});
+
+describe('exports from Copilot', () => {
+  const header = 'date,name,amount,status,category,parent category,excluded,tags,type,account,account mask,note,recurring';
+  const copilot = [
+    header,
+    '2026-11-03,Corner Bakery,4.50,posted,Restaurants,Food & Drink,false,,regular,Chase Checking,1234,,',
+    '2026-11-04,Employer Inc,-3250.00,posted,Paycheck,Income,false,,income,Chase Checking,1234,November pay,',
+    '2026-11-05,Credit Card Payment,500.00,posted,,,false,,internal transfer,Chase Checking,1234,,',
+    '2026-11-05,Credit Card Payment,-500.00,posted,,,false,,internal transfer,Sapphire Card,9876,,',
+    '2026-11-06,Hotel Alba,142.50,pending,Travel,,false,"lisbon, work",regular,Sapphire Card,9876,,',
+    '2026-11-07,Reimbursed dinner,60.00,posted,Restaurants,Food & Drink,true,,regular,Sapphire Card,9876,,',
+  ].join('\n');
+
+  it('is recognised by its header', () => {
+    expect(detectProfile(readCSV(copilot))).toBe('copilot');
+    expect(detectProfile(readCSV('Date,Description,Amount\n2026-01-02,Shop,-5'))).toBeUndefined();
+    expect(detectProfile(readCSV('date,name,amount,category,parent category,excluded\n2026-01-02,Shop,5,Food,,false'))).toBe('copilot');
+  });
+
+  it('maps its columns and turns the signs the right way round', () => {
+    const file = readCSV(copilot);
+    const mapping = inferMapping(file);
+    expect(mapping).toMatchObject({ date: 0, payee: 1, amount: 2, status: 3, category: 4, excluded: 6, tags: 7, type: 8, account: 9, notes: 11 });
+    // Spending is written as positive, which the income row (negative) confirms.
+    expect(inferOptions(file, mapping, 'USD')).toMatchObject({ profile: 'copilot', flipSign: true, dateOrder: 'YMD' });
+  });
+
+  it('trusts the file when its income rows are already positive, and assumes the usual convention when it has none', () => {
+    const positiveIncome = readCSV(
+      [
+        header,
+        '2026-11-04,Employer Inc,3250.00,posted,Paycheck,Income,false,,income,Checking,1,,',
+        '2026-11-03,Cafe,-4.50,posted,Food,,false,,regular,Checking,1,,',
+      ].join('\n'),
+    );
+    expect(inferOptions(positiveIncome, inferMapping(positiveIncome), 'USD').flipSign).toBe(false);
+    const noIncome = readCSV([header, '2026-11-03,Cafe,4.50,posted,Food,,false,,regular,Checking,1,,'].join('\n'));
+    expect(inferOptions(noIncome, inferMapping(noIncome), 'USD').flipSign).toBe(true);
+  });
+
+  it('reads accounts, transfers, excluded rows, pending status, tags and notes', () => {
+    const file = readCSV(copilot);
+    const mapping = inferMapping(file);
+    const { rows, errors } = buildImportRows(file, mapping, inferOptions(file, mapping, 'USD'));
+    expect(errors).toEqual([]);
+    expect(rows.map((row) => [row.payee, row.amount, row.accountName, row.categoryName, row.transfer, row.pending, row.tags, row.notes])).toEqual([
+      ['Corner Bakery', -450, 'Chase Checking', 'Restaurants', undefined, undefined, undefined, undefined],
+      ['Employer Inc', 325000, 'Chase Checking', 'Paycheck', undefined, undefined, undefined, 'November pay'],
+      ['Credit Card Payment', -50000, 'Chase Checking', undefined, true, undefined, undefined, undefined],
+      ['Credit Card Payment', 50000, 'Sapphire Card', undefined, true, undefined, undefined, undefined],
+      ['Hotel Alba', -14250, 'Sapphire Card', 'Travel', undefined, true, ['lisbon', 'work'], undefined],
+      ['Reimbursed dinner', -6000, 'Sapphire Card', undefined, true, undefined, undefined, undefined],
+    ]);
+  });
+
+  it('does not read meaning into a bank export that happens to have a Type column', () => {
+    const file = readCSV(
+      'Type,Started Date,Description,Amount,Status\nTRANSFER,2026-01-02,To Sam,-20.00,COMPLETED\nCARD_PAYMENT,2026-01-03,Shop,-5.00,PENDING',
+    );
+    const mapping = inferMapping(file);
+    const { rows } = buildImportRows(file, mapping, inferOptions(file, mapping, 'EUR'));
+    expect(rows.map((row) => [row.transfer, row.pending, row.amount])).toEqual([
+      [undefined, undefined, -2000],
+      [undefined, true, -500],
+    ]);
   });
 });
