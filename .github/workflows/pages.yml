@@ -1,0 +1,55 @@
+name: Publish web app
+
+# Publishes the web build to GitHub Pages so it can be opened on a phone and added to the home screen.
+# Needs Pages switched on once: repository Settings → Pages → Source: "GitHub Actions".
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build for /<repository-name>
+        run: npm run build:web
+        env:
+          WEB_BASE_URL: /${{ github.event.repository.name }}
+
+      - name: Make every address open the app, and keep files that start with an underscore
+        run: |
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
