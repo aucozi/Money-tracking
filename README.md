@@ -60,6 +60,22 @@ npx expo start
 
 On first launch choose "Explore with sample data" to see every screen populated with an invented household.
 
+## Put it on your iPhone's home screen, free
+
+The quickest way to have Waypoint on a phone needs no computer and no Apple developer account: publish the web build
+and add it to the home screen. It gets its own icon, opens full screen, and keeps its data on the phone.
+
+1. In the repository on GitHub: **Settings → Pages → Source: GitHub Actions**. This is needed once.
+2. **Actions → Publish web app → Run workflow.** After a couple of minutes the app is live at
+   `https://<your-github-name>.github.io/<repository-name>/`.
+3. Open that address in **Safari** on the iPhone, tap **Share**, then **Add to Home Screen**.
+
+Open it from the home-screen icon from then on: an installed web app keeps its own data, separate from Safari's.
+
+This is the web version of the app. It has every feature, but the glass is the translucent stand-in rather than
+Apple's Liquid Glass, there are no haptics, and a bank access key is kept in the browser's storage instead of the
+keychain. For the fully native app, build it as below.
+
 ## Build it for iPhone
 
 Building the installable app needs an Apple Developer account and happens in Expo's build service, so no Mac is

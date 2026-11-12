@@ -86,3 +86,16 @@ test('money moved between your own accounts is not spending', async ({ page }) =
   await expect(page.getByLabel('Everyday, $1,100.00')).toBeVisible();
   await expect(page.getByLabel('Savings pot, $400.00')).toBeVisible();
 });
+
+test('the web build can be added to an iPhone home screen as an app', async ({ page, request }) => {
+  await open(page);
+  await expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).toHaveAttribute('content', 'yes');
+  await expect(page.locator('meta[name="viewport"]')).toHaveAttribute('content', /viewport-fit=cover/);
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', 'apple-touch-icon.png');
+
+  const manifest = await (await request.get('/manifest.json')).json();
+  expect(manifest).toMatchObject({ name: 'Waypoint', display: 'standalone', start_url: '.' });
+  for (const icon of [...manifest.icons.map((item: { src: string }) => item.src), 'apple-touch-icon.png']) {
+    expect((await request.get(`/${icon}`)).ok()).toBe(true);
+  }
+});

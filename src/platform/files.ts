@@ -9,6 +9,19 @@ import { Platform } from 'react-native';
  */
 export async function saveTextFile(name: string, contents: string, mimeType: string): Promise<void> {
   if (Platform.OS === 'web') {
+    // A web app on an iPhone home screen cannot download a file, but it can hand one to the
+    // share sheet (Save to Files, AirDrop, Mail). Use that where the browser offers it on a phone.
+    const shareable = new window.File([contents], name, { type: mimeType });
+    const canShareFiles = typeof navigator.canShare === 'function' && navigator.maxTouchPoints > 0 && navigator.canShare({ files: [shareable] });
+    if (canShareFiles) {
+      try {
+        await navigator.share({ files: [shareable], title: name });
+        return;
+      } catch (error) {
+        // Closing the share sheet is a choice, not a failure. Anything else falls back to a download.
+        if (error instanceof Error && error.name === 'AbortError') return;
+      }
+    }
     const url = URL.createObjectURL(new Blob([contents], { type: `${mimeType};charset=utf-8` }));
     const link = document.createElement('a');
     link.href = url;

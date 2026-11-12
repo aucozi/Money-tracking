@@ -1,5 +1,6 @@
 import { Tabs, type BottomTabBarProps } from 'expo-router/js-tabs';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Glass } from '@/ui/glass';
 import { Icon, type IconName } from '@/ui/icon';
@@ -19,8 +20,10 @@ const TABS: { name: string; title: string; icon: IconName; active: IconName }[] 
  */
 function FloatingTabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   return (
-    <View pointerEvents="box-none" style={styles.dock}>
+    // Installed on a home screen the page reaches the bottom edge, so keep clear of the home indicator.
+    <View pointerEvents="box-none" style={[styles.dock, { bottom: space.md + insets.bottom }]}>
       <Glass style={styles.bar}>
         <View accessibilityRole="tablist" style={styles.items}>
           {state.routes.map((route, index) => {
@@ -66,7 +69,7 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  dock: { position: 'absolute', left: 0, right: 0, bottom: space.md, alignItems: 'center', paddingHorizontal: space.md },
+  dock: { position: 'absolute', left: 0, right: 0, alignItems: 'center', paddingHorizontal: space.md },
   // Items are 52 tall with a radius of 26; four of padding keeps the bar concentric with them.
   bar: { borderRadius: 30, padding: 4, width: '100%', maxWidth: 440, overflow: 'hidden' },
   items: { flexDirection: 'row' },
