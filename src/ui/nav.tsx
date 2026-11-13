@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Stack } from 'expo-router/stack';
 import { type ReactNode } from 'react';
 import { Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KeyboardAvoider } from './motion';
 import { ToastHost } from './overlays';
@@ -27,6 +28,7 @@ export function ModalScreen({
   headerRight?: ReactNode;
   testID?: string;
 }) {
+  const insets = useSafeAreaInsets();
   return (
     <>
       <Stack.Screen
@@ -37,7 +39,7 @@ export function ModalScreen({
           headerRight: headerRight ? () => headerRight : undefined,
         }}
       />
-      <KeyboardAvoider style={styles.flex}>
+      <KeyboardAvoider style={styles.flex} bottomInset={insets.bottom}>
         <Screen edges={['bottom']} footer={footer} testID={testID}>
           {children}
         </Screen>

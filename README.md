@@ -20,7 +20,8 @@ or artwork with Copilot.
 
 - **Transactions.** Add by hand in a few taps, import a CSV export from any bank, or connect a bank and let them
   arrive by themselves. Search across payee, notes, tags and amounts; filter; select several and categorise them
-  together; export exactly what you filtered.
+  together; export exactly what you filtered. Swipe a row right to mark it reviewed, or left to categorise or delete
+  it.
 - **Bank connections.** Transactions, balances and investment holdings sync straight from the bank service to the
   phone, with no Waypoint server in between. See [docs/bank-sync.md](docs/bank-sync.md) for how it works, what it
   needs and where its limits are.
@@ -30,7 +31,11 @@ or artwork with Copilot.
   Track spending against limits, or switch to planning every unit of income.
 - **Bills and income.** Weekly to yearly schedules, found in your history or added by hand. Mark paid or skip in two
   taps; payments that arrive later are matched automatically.
+- **Subscriptions.** What everything on a schedule costs per month and per year, most expensive first, and a note
+  when a price that had held goes up.
 - **Forecast.** Your cash balance projected day by day for up to 90 days, with a warning before it runs short.
+- **Month in review.** Any month summed up: what you kept, where it went, what changed against the month before,
+  your biggest purchases and how the budget held.
 - **Goals and debt.** Savings goals that say how much to put aside each month, and a payoff plan for cards and loans.
 - **Accounts and net worth.** Any mix of currencies, converted with rates you set.
 - **Rules.** Tidy up transactions automatically, with every rule visible, editable and reorderable.
@@ -41,8 +46,9 @@ or artwork with Copilot.
 The interface follows Apple's current design language, Liquid Glass. Content is calm and opaque on a grouped
 background. Navigation and controls float above it on glass: the tab bar, toolbar buttons, the add button, sheets and
 toasts. On iPhone the tab bar is the system's own, icons are SF Symbols, amounts use rounded numerals, and selections
-and saves give haptic feedback. The real glass material needs iOS 26 or later; older iPhones, Android and browsers
-get a translucent stand-in with the same layout.
+and saves give haptic feedback. Sheets rise over a dim that fades in place, forms stay clear of the keyboard, and
+dragging a finger across a chart reads off the value under it. The real glass material needs iOS 26 or later; older
+iPhones, Android and browsers get a translucent stand-in with the same layout.
 
 ## Run it
 
@@ -98,7 +104,7 @@ identifier you own. On a Mac you can also run `npx expo run:ios` to build locall
 | `npm test` | Over 350 Jest tests: all the money logic, bank syncing, the data store, and the whole app rendered through its real routes as it runs on iPhone |
 | `npm run test:coverage` | The same, failing if the core logic drops below 90% coverage |
 | `npm run build:ios-bundle` | The iPhone JavaScript bundle compiles |
-| `npm run build:web && npm run e2e` | Over 30 Playwright tests driving the real app at iPhone size: first run, transactions, budgets, bills, forecast, import, bank connections, investments, backup and restore |
+| `npm run build:web && npm run e2e` | 40 Playwright tests driving the real app at iPhone size: first run, transactions, swipes, budgets, bills, subscriptions, forecast, month in review, import, bank connections, investments, backup and restore |
 | `npm run check:bank-sync` | Bank syncing against a real server: SimpleFIN's public demo bank |
 | `npm run verify` | All of the above in order |
 
@@ -107,8 +113,9 @@ The first time, the browser tests need a browser: `npx playwright install chromi
 
 What is not covered here: the app has not been run on a physical iPhone or in the iOS Simulator by these tests. That
 matters most for the parts only an iPhone can draw: the Liquid Glass tab bar and surfaces, SF Symbols and haptics are
-checked for compiling and rendering without error, not for how they look. Native file sharing (exporting through the
-share sheet), the system file picker and the keychain are exercised only in their web or stand-in form.
+checked for compiling and rendering without error, not for how they look. Keeping forms clear of the iPhone keyboard
+is likewise only checked by hand on a device. Native file sharing (exporting through the share sheet), the system
+file picker and the keychain are exercised only in their web or stand-in form.
 
 ## How it is put together
 
@@ -152,6 +159,7 @@ saved data ever cannot be read, the app says so and keeps the unreadable copy ra
 - Holdings entered by hand keep the value you type; market prices are not fetched. No performance history or
   benchmarks.
 - One device, one person: no sync and no shared household.
+- No home-screen widgets: those need a native build with an Apple developer account, not Expo Go or the web app.
 - Exchange rates are entered by hand.
 - English only.
 

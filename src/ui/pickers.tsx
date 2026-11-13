@@ -127,7 +127,7 @@ export function CategorySheet({
   return (
     <Sheet visible={visible} onClose={onClose} title={title} testID="category-sheet">
       <Card padded={false}>
-        <ListItem title="Uncategorized" leading={<Glyph icon="❔" />} selected={selected === null} onPress={() => onPick(null)} />
+        <ListItem title="Uncategorized" leading={<Glyph icon="?" />} selected={selected === null} onPress={() => onPick(null)} />
       </Card>
       {groups.map((group) => {
         const categories = data.categories

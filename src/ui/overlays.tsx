@@ -1,11 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Animated, Easing, Modal, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { haptic } from '@/platform/haptics';
 
 import { Glass, hasLiquidGlass } from './glass';
-import { DropIn, KeyboardAvoider } from './motion';
+import { DropIn, KeyboardAvoider, useReducedMotion } from './motion';
 import { Button, IconButton, OnBackground, Row, T } from './primitives';
 import { continuous, radius, space, useTheme } from './theme';
 
@@ -18,31 +18,67 @@ interface SheetProps {
   testID?: string;
 }
 
-/** A panel that slides up from the bottom, for pickers and short forms. */
+/**
+ * A panel that slides up from the bottom, for pickers and short forms.
+ *
+ * The dim behind it fades in where it is; only the panel travels. On the way
+ * out the panel leaves first and the sheet is removed once it has gone.
+ */
 export function Sheet({ visible, onClose, ...rest }: SheetProps) {
+  const reduced = useReducedMotion();
+  const [mounted, setMounted] = useState(visible);
+  const [progress] = useState(() => new Animated.Value(0));
+  // Opening is decided while rendering, so the first frame already contains the sheet.
+  if (visible && !mounted) setMounted(true);
+
+  useEffect(() => {
+    const animation = Animated.timing(progress, {
+      toValue: visible ? 1 : 0,
+      duration: reduced ? 0 : visible ? 280 : 200,
+      easing: visible ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+      useNativeDriver: Platform.OS !== 'web',
+    });
+    animation.start(({ finished }) => {
+      if (finished && !visible) setMounted(false);
+    });
+    return () => animation.stop();
+  }, [visible, reduced, progress]);
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       {/*
         A modal is its own window. Measuring the safe area again here gives the
         gap for the home indicator, not the one for the tab bar that the screen
         underneath reports.
       */}
       <SafeAreaProvider>
-        <SheetPanel visible={visible} onClose={onClose} {...rest} />
+        <SheetPanel visible={visible} onClose={onClose} progress={progress} {...rest} />
       </SafeAreaProvider>
     </Modal>
   );
 }
 
-function SheetPanel({ onClose, title, children, footer, testID }: SheetProps) {
+function SheetPanel({ onClose, title, children, footer, testID, progress }: SheetProps & { progress: Animated.Value }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   return (
-    <KeyboardAvoider style={styles.sheetStage}>
-      {/* The dim covers everything, including the strip beside and below the sheet. */}
-      <Pressable accessibilityLabel="Close" style={[StyleSheet.absoluteFill, { backgroundColor: c.overlay }]} onPress={onClose} />
+    <KeyboardAvoider style={styles.sheetStage} bottomInset={insets.bottom}>
+      {/* The dim covers the whole screen and only changes opacity. */}
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: c.overlay, opacity: progress }]}>
+        <Pressable accessibilityLabel="Close" style={StyleSheet.absoluteFill} onPress={onClose} />
+      </Animated.View>
       {/* A sheet floats: inset from the edges, with corners that follow the screen's own. */}
-      <View style={[styles.sheetDock, { paddingBottom: Math.max(insets.bottom, space.sm) }]} pointerEvents="box-none">
+      <Animated.View
+        style={[
+          styles.sheetDock,
+          {
+            paddingBottom: Math.max(insets.bottom, space.sm),
+            transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [height, 0] }) }],
+          },
+        ]}
+        pointerEvents="box-none"
+      >
         <Glass testID={testID} style={[styles.sheet, !hasLiquidGlass && { backgroundColor: c.bg }]}>
           {/* Glass alone lets the screen behind show through the form; this keeps the sheet readable. */}
           {hasLiquidGlass ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: c.bg, opacity: 0.88 }]} /> : null}
@@ -62,7 +98,7 @@ function SheetPanel({ onClose, title, children, footer, testID }: SheetProps) {
             </OnBackground>
           </View>
         </Glass>
-      </View>
+      </Animated.View>
     </KeyboardAvoider>
   );
 }

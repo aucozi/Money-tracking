@@ -10,7 +10,7 @@ const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePa
 async function session(colorScheme) {
   const context = await browser.newContext({ ...devices['iPhone 15'], colorScheme });
   const page = await context.newPage();
-  await page.clock.setFixedTime(new Date('2026-11-10T10:00:00'));
+  await page.clock.install({ time: new Date('2026-11-10T10:00:00') });
   await page.goto(base);
   await page.getByTestId('start-demo').click();
   const shot = async (name) => {
@@ -37,6 +37,10 @@ await light.page.getByTestId('tab-accounts').click();
 await light.shot('accounts');
 await light.page.getByTestId('open-investments').click();
 await light.shot('investments');
+await light.page.goto(`${base}/subscriptions`);
+await light.shot('subscriptions');
+await light.page.goto(`${base}/review?month=2026-10`);
+await light.shot('review');
 await light.close();
 
 const dark = await session('dark');

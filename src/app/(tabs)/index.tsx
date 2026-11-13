@@ -1,14 +1,15 @@
 import { router } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { computeMonthBudget, spendingByDay } from '@/domain/budget';
-import { addDays, addMonthsToKey, formatMonth, formatRelative, monthKey, monthRange, parts } from '@/domain/dates';
+import { addDays, addMonthsToKey, formatDate, formatMonth, formatRelative, monthKey, monthRange, parts } from '@/domain/dates';
 import { forecastBalance } from '@/domain/forecast';
 import { cashflow, freeToSpend, pace, topCategories } from '@/domain/insights';
 import { formatChange, formatMoney } from '@/domain/money';
 import { netWorth, netWorthHistory } from '@/domain/networth';
 import { scheduleBetween, upcoming } from '@/domain/recurring';
+import { subscriptions } from '@/domain/subscriptions';
 import { Fab, showTransactions, TabHeader } from '@/features/shared';
 import { useActivityIndex, useBalances, useCtx, useData, useToday } from '@/store/hooks';
 import { useBankRefresh } from '@/sync/run';
@@ -55,6 +56,8 @@ export default function Home() {
         everydaySpending: data.settings.forecastEverydaySpending,
       }),
       toReview: data.transactions.filter((tx) => !tx.reviewed).length,
+      increases: subscriptions(data.recurrings, data.transactions, data.accounts, ctx, today).increases,
+      lastMonthKept: cashflow(index, data.categories, [addMonthsToKey(month, -1)])[0],
     };
   }, [data, ctx, index, balances, today, month]);
 
@@ -66,6 +69,11 @@ export default function Home() {
   const day = parts(today).day;
   const hasAccounts = data.accounts.length > 0;
   const budgeted = view.budget.totalBudgeted;
+  // The point a finger is resting on in each chart, if any: the figures above the chart follow it.
+  const [spendDay, setSpendDay] = useState<number | null>(null);
+  const [worthAt, setWorthAt] = useState<number | null>(null);
+  const lastMonthBy = (index: number) => view.lastMonth[Math.min(index, view.lastMonth.length - 1)] ?? 0;
+  const worthPoint = worthAt === null ? undefined : view.history[worthAt];
 
   return (
     <View style={styles.flex}>
@@ -86,12 +94,27 @@ export default function Home() {
         ) : (
           <>
             <Card>
-              <T variant="label" tone="muted">
-                Spent this month
+              <T variant="label" tone="muted" testID="spent-label">
+                {spendDay === null
+                  ? 'Spent this month'
+                  : spendDay < day
+                    ? `Spent by ${formatDate(`${month}-${String(spendDay + 1).padStart(2, '0')}`)}`
+                    : `Last month by day ${spendDay + 1}`}
               </T>
               <Row align="flex-end">
-                <Money amount={view.pace.spent} currency={base} variant="display" testID="spent-this-month" />
-                {budgeted > 0 ? (
+                <Money
+                  amount={spendDay === null ? view.pace.spent : spendDay < day ? view.thisMonth[spendDay] : lastMonthBy(spendDay)}
+                  currency={base}
+                  variant="display"
+                  testID="spent-this-month"
+                />
+                {spendDay !== null ? (
+                  spendDay < day ? (
+                    <T tone="muted" style={styles.baseline}>
+                      last month {money(lastMonthBy(spendDay), true)}
+                    </T>
+                  ) : null
+                ) : budgeted > 0 ? (
                   <T tone="muted" style={styles.baseline}>
                     of {money(budgeted, true)}
                   </T>
@@ -108,6 +131,7 @@ export default function Home() {
                   { values: view.thisMonth, color: c.accent, fill: true, upTo: day },
                 ]}
                 marker={{ index: day - 1, series: budgeted > 0 ? 2 : 1 }}
+                onScrub={setSpendDay}
               />
               <Row style={styles.wrap} gap={space.lg}>
                 <Legend color={c.accent} label="This month" />
@@ -161,6 +185,40 @@ export default function Home() {
                   trailing={<IconButton icon="chevron-forward" label="Review" tone="faint" onPress={() => showTransactions({ needsReview: true })} />}
                   onPress={() => showTransactions({ needsReview: true })}
                   testID="review-card"
+                />
+              </Card>
+            ) : null}
+
+            {view.increases.map((item) => (
+              <Notice
+                key={item.recurring.id}
+                tone="warning"
+                title={`${item.recurring.name} went up`}
+                body={`${formatMoney(item.change!.from, item.recurring.currency)} became ${formatMoney(item.change!.to, item.recurring.currency)}, which is ${formatMoney(item.change!.perYear, item.recurring.currency)} more over a year.`}
+                action={<Button label="See subscriptions" kind="ghost" small onPress={() => router.push('/subscriptions')} testID="open-subscriptions-home" />}
+              />
+            ))}
+
+            {day <= 10 && (view.lastMonthKept.income > 0 || view.lastMonthKept.spent > 0) ? (
+              <Card padded={false}>
+                <ListItem
+                  title={`${formatMonth(view.lastMonthKept.month).split(' ')[0]} in review`}
+                  subtitle={
+                    view.lastMonthKept.net >= 0
+                      ? `You kept ${money(view.lastMonthKept.net, true)}. See where the rest went.`
+                      : `You spent ${money(-view.lastMonthKept.net, true)} more than came in. See where it went.`
+                  }
+                  leading={<Glyph icon="🗓️" />}
+                  trailing={
+                    <IconButton
+                      icon="chevron-forward"
+                      label="Open the review"
+                      tone="faint"
+                      onPress={() => router.push({ pathname: '/review', params: { month: view.lastMonthKept.month } })}
+                    />
+                  }
+                  onPress={() => router.push({ pathname: '/review', params: { month: view.lastMonthKept.month } })}
+                  testID="review-last-month"
                 />
               </Card>
             ) : null}
@@ -234,11 +292,15 @@ export default function Home() {
 
             <SectionTitle action={<Button label="Accounts" kind="ghost" small onPress={() => router.navigate('/accounts')} />}>Net worth</SectionTitle>
             <Card>
-              <Money amount={view.worth.net} currency={base} variant="title" testID="net-worth" />
+              <T variant="caption" tone="faint">
+                {worthPoint && worthPoint.month !== month ? `End of ${formatMonth(worthPoint.month)}` : 'Today'}
+              </T>
+              <Money amount={worthPoint ? worthPoint.net : view.worth.net} currency={base} variant="title" testID="net-worth" />
               <LineChart
                 height={90}
                 label={`Net worth over the last six months, now ${money(view.worth.net)}.`}
                 series={[{ values: view.history.map((point) => point.net), color: c.accent, fill: true }]}
+                onScrub={setWorthAt}
               />
               <Row>
                 <View style={styles.flex}>
@@ -256,7 +318,9 @@ export default function Home() {
               </Row>
             </Card>
 
-            <SectionTitle>Money in and out</SectionTitle>
+            <SectionTitle action={<Button label="Month in review" kind="ghost" small onPress={() => router.push('/review')} testID="open-review" />}>
+              Money in and out
+            </SectionTitle>
             <Card>
               <BarChart
                 label={`Income and spending for the last six months. This month: ${money(view.flow[view.flow.length - 1].income)} in, ${money(view.flow[view.flow.length - 1].spent)} out.`}

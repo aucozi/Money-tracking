@@ -661,7 +661,7 @@ export function Glyph({ icon, color, size = 40 }: { icon: string; color?: string
         },
       ]}
     >
-      <Text style={{ fontSize: size * 0.5 }}>{icon}</Text>
+      <Text style={{ fontSize: size * 0.5, color: c.textMuted, fontWeight: '600' }}>{icon}</Text>
     </View>
   );
 }

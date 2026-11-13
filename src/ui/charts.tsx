@@ -1,6 +1,8 @@
-import { useState } from 'react';
-import { View, type LayoutChangeEvent } from 'react-native';
+import { useRef, useState } from 'react';
+import { View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+
+import { haptic } from '@/platform/haptics';
 
 import { useTheme } from './theme';
 
@@ -22,6 +24,11 @@ function useWidth(): [number, (event: LayoutChangeEvent) => void] {
 /**
  * Line chart for a handful of series that share one scale. `label` is read out
  * by screen readers in place of the picture.
+ *
+ * With `onScrub`, dragging a finger sideways across the chart picks a point:
+ * the chart marks it and reports its index, and reports null when the finger
+ * lifts. A drag that starts up or down is left to the page, so the chart never
+ * gets in the way of scrolling.
  */
 export function LineChart({
   series,
@@ -29,6 +36,7 @@ export function LineChart({
   label,
   zeroLine = false,
   marker,
+  onScrub,
 }: {
   series: Series[];
   height?: number;
@@ -36,9 +44,12 @@ export function LineChart({
   zeroLine?: boolean;
   /** Highlight one point: the index along the x axis and the series to sit on. */
   marker?: { index: number; series: number };
+  onScrub?: (index: number | null) => void;
 }) {
   const { c } = useTheme();
   const [width, onLayout] = useWidth();
+  const [scrub, setScrub] = useState<number | null>(null);
+  const touch = useRef({ x: 0, y: 0 });
   const pad = 6;
   const all = series.flatMap((item) => item.values.slice(0, item.upTo ?? item.values.length));
   const length = Math.max(1, ...series.map((item) => item.values.length));
@@ -58,10 +69,44 @@ export function LineChart({
       .map((value, index) => `${index === 0 ? 'M' : 'L'}${x(index).toFixed(1)} ${y(value).toFixed(1)}`)
       .join(' ');
 
+  const pick = (event: GestureResponderEvent) => {
+    if (width <= pad * 2 || length <= 1) return;
+    const along = (event.nativeEvent.locationX - pad) / (width - pad * 2);
+    const next = Math.max(0, Math.min(length - 1, Math.round(along * (length - 1))));
+    if (next === scrub) return;
+    haptic.select();
+    setScrub(next);
+    onScrub?.(next);
+  };
+  const release = () => {
+    setScrub(null);
+    onScrub?.(null);
+  };
+  const scrubbing = onScrub
+    ? {
+        // Remember where the finger went down, but do not claim it yet: it may be the start of a scroll.
+        onStartShouldSetResponder: (event: GestureResponderEvent) => {
+          touch.current = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
+          return false;
+        },
+        onMoveShouldSetResponder: (event: GestureResponderEvent) => {
+          const dx = Math.abs(event.nativeEvent.pageX - touch.current.x);
+          const dy = Math.abs(event.nativeEvent.pageY - touch.current.y);
+          return dx > 4 && dx > dy;
+        },
+        onResponderGrant: pick,
+        onResponderMove: pick,
+        onResponderRelease: release,
+        onResponderTerminate: release,
+        onResponderTerminationRequest: () => false,
+      }
+    : {};
+
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={label} onLayout={onLayout} style={{ height }}>
+    <View accessible accessibilityRole="image" accessibilityLabel={label} onLayout={onLayout} style={{ height }} {...scrubbing}>
       {width > 0 ? (
-        <Svg width={width} height={height}>
+        // Touches go to the view around the picture, so positions are always measured from the chart's edge.
+        <Svg width={width} height={height} pointerEvents="none">
           <Defs>
             {series.map((item, index) => (
               <LinearGradient key={index} id={`fill${index}`} x1="0" y1="0" x2="0" y2="1">
@@ -93,7 +138,17 @@ export function LineChart({
               </G>
             );
           })}
-          {marker && series[marker.series]?.values[marker.index] !== undefined ? (
+          {scrub !== null ? (
+            <G>
+              <Line x1={x(scrub)} x2={x(scrub)} y1={0} y2={height} stroke={c.textFaint} strokeWidth={1} />
+              {series.map((item, index) =>
+                !item.dashed && scrub < (item.upTo ?? item.values.length) && item.values[scrub] !== undefined ? (
+                  <Circle key={index} cx={x(scrub)} cy={y(item.values[scrub])} r={5} fill={item.color} stroke={c.surface} strokeWidth={2} />
+                ) : null,
+              )}
+            </G>
+          ) : null}
+          {scrub === null && marker && series[marker.series]?.values[marker.index] !== undefined ? (
             <Circle
               cx={x(marker.index)}
               cy={y(series[marker.series].values[marker.index])}

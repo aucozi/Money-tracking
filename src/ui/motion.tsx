@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { Animated, Easing, Keyboard, LayoutAnimation, Platform, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Animated, Dimensions, Easing, Keyboard, LayoutAnimation, Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 
 /**
  * Motion, used sparingly. Controls give a little under the finger and spring
@@ -61,13 +61,30 @@ export function DropIn({ children }: { children: ReactNode }) {
   );
 }
 
+/** True when the person has asked the system to reduce motion. Movement is then skipped, not just shortened. */
+export function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    void AccessibilityInfo.isReduceMotionEnabled()
+      .then(setReduced)
+      .catch(() => undefined);
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduced);
+    return () => subscription.remove();
+  }, []);
+  return reduced;
+}
+
 /**
- * Keeps its contents clear of the keyboard. It measures where it actually sits
- * on screen, so it is right inside sheets and pushed screens, where a fixed
- * offset is not.
+ * Keeps its contents clear of the keyboard. Use it for things that reach the
+ * bottom of the screen: pushed screens and sheets. It pads by the height of
+ * the keyboard itself, which does not depend on where the view sits, so it is
+ * right inside a sheet presented part-way down the screen, where measuring the
+ * view's own position is not.
+ *
+ * `bottomInset` is space the contents already leave at the bottom for the home
+ * indicator. The keyboard covers that, so it is not added twice.
  */
-export function KeyboardAvoider({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  const ref = useRef<ComponentRef<typeof View>>(null);
+export function KeyboardAvoider({ children, style, bottomInset = 0 }: { children: ReactNode; style?: StyleProp<ViewStyle>; bottomInset?: number }) {
   const [inset, setInset] = useState(0);
 
   useEffect(() => {
@@ -78,20 +95,15 @@ export function KeyboardAvoider({ children, style }: { children: ReactNode; styl
       setInset(next);
     };
     const changed = Keyboard.addListener('keyboardWillChangeFrame', (event) => {
-      ref.current?.measureInWindow((_x, y, _width, height) => {
-        apply(Math.max(0, y + height - event.endCoordinates.screenY), event.duration ?? 250);
-      });
+      const covered = Dimensions.get('screen').height - event.endCoordinates.screenY;
+      apply(Math.max(0, covered - bottomInset), event.duration ?? 250);
     });
     const hidden = Keyboard.addListener('keyboardWillHide', (event) => apply(0, event.duration ?? 250));
     return () => {
       changed.remove();
       hidden.remove();
     };
-  }, []);
+  }, [bottomInset]);
 
-  return (
-    <View ref={ref} style={[style, { paddingBottom: inset }]}>
-      {children}
-    </View>
-  );
+  return <View style={[style, { paddingBottom: inset }]}>{children}</View>;
 }

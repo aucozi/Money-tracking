@@ -1,10 +1,11 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /** The day every test runs on, so sample data and "today" never drift. */
 export const TODAY = '2026-11-10';
 
 export async function open(page: Page) {
-  await page.clock.setFixedTime(new Date(`${TODAY}T10:00:00`));
+  // Start the clock on that day and let it run: animations need time to pass to finish.
+  await page.clock.install({ time: new Date(`${TODAY}T10:00:00`) });
   await page.goto('/');
   await expect(page.getByTestId('welcome')).toBeVisible();
 }
@@ -47,4 +48,27 @@ export async function savedData(page: Page) {
 export async function pick(page: Page, testId: string) {
   await page.getByTestId(testId).last().click();
   await expect(page.getByTestId(testId)).toHaveCount(0);
+}
+
+/**
+ * Drag a finger sideways across an element, starting `from` pixels in from its left edge and
+ * travelling `by` pixels (negative goes left). With `hold`, the finger stays down so the test can
+ * look at what the drag shows; the returned function lifts it.
+ */
+export async function drag(page: Page, target: Locator, from: number, by: number, hold = false) {
+  const box = await target.boundingBox();
+  if (!box) throw new Error('Nothing to drag: the element is not on screen');
+  const session = await page.context().newCDPSession(page);
+  const y = box.y + box.height / 2;
+  const send = (type: 'touchStart' | 'touchMove' | 'touchEnd', x?: number) =>
+    session.send('Input.dispatchTouchEvent', { type, touchPoints: x === undefined ? [] : [{ x: box.x + x, y }] });
+  await send('touchStart', from);
+  const steps = Math.max(4, Math.ceil(Math.abs(by) / 10));
+  for (let step = 1; step <= steps; step += 1) {
+    await send('touchMove', from + (by * step) / steps);
+    await page.waitForTimeout(16);
+  }
+  const lift = () => send('touchEnd');
+  if (!hold) await lift();
+  return lift;
 }

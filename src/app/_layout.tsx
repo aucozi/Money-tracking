@@ -5,7 +5,8 @@ import { Stack } from 'expo-router/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { AppState, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { Welcome } from '@/features/welcome';
 import { flushSave, startAutosave, useStore } from '@/store/store';
@@ -88,40 +89,46 @@ export default function RootLayout() {
   const largeTitle = { headerLargeTitle: true, headerLargeTitleShadowVisible: false, headerLargeTitleStyle: { color: theme.c.text } };
 
   return (
-    <ThemeProvider value={navigation}>
-      <StatusBar style={theme.dark ? 'light' : 'dark'} />
-      <FeedbackProvider>
-        {loadError ? (
-          <LoadProblem message={loadError} />
-        ) : !onboarded ? (
-          <Welcome />
-        ) : (
-          <Stack
-            screenOptions={{
-              headerShadowVisible: false,
-              headerStyle: { backgroundColor: theme.c.bg },
-              headerTintColor: theme.c.text,
-              contentStyle: { backgroundColor: theme.c.bg },
-            }}
-          >
-            {/* The title is what the back button on the next screen is called. */}
-            <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />
-            <Stack.Screen name="transaction" options={modal} />
-            <Stack.Screen name="account" options={modal} />
-            <Stack.Screen name="recurring" options={modal} />
-            <Stack.Screen name="goal" options={modal} />
-            <Stack.Screen name="rule" options={modal} />
-            <Stack.Screen name="category" options={modal} />
-            <Stack.Screen name="import" options={modal} />
-            <Stack.Screen name="holding" options={modal} />
-            <Stack.Screen name="connections" options={{ title: 'Bank connections', ...largeTitle }} />
-            <Stack.Screen name="investments" options={{ title: 'Investments', ...largeTitle }} />
-            <Stack.Screen name="rules" options={{ title: 'Rules', ...largeTitle }} />
-            <Stack.Screen name="categories" options={{ title: 'Categories', ...largeTitle }} />
-            <Stack.Screen name="settings" options={{ title: 'Settings', ...largeTitle }} />
-          </Stack>
-        )}
-      </FeedbackProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <ThemeProvider value={navigation}>
+        <StatusBar style={theme.dark ? 'light' : 'dark'} />
+        <FeedbackProvider>
+          {loadError ? (
+            <LoadProblem message={loadError} />
+          ) : !onboarded ? (
+            <Welcome />
+          ) : (
+            <Stack
+              screenOptions={{
+                headerShadowVisible: false,
+                headerStyle: { backgroundColor: theme.c.bg },
+                headerTintColor: theme.c.text,
+                contentStyle: { backgroundColor: theme.c.bg },
+              }}
+            >
+              {/* The title is what the back button on the next screen is called. */}
+              <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />
+              <Stack.Screen name="transaction" options={modal} />
+              <Stack.Screen name="account" options={modal} />
+              <Stack.Screen name="recurring" options={modal} />
+              <Stack.Screen name="goal" options={modal} />
+              <Stack.Screen name="rule" options={modal} />
+              <Stack.Screen name="category" options={modal} />
+              <Stack.Screen name="import" options={modal} />
+              <Stack.Screen name="holding" options={modal} />
+              <Stack.Screen name="connections" options={{ title: 'Bank connections', ...largeTitle }} />
+              <Stack.Screen name="investments" options={{ title: 'Investments', ...largeTitle }} />
+              <Stack.Screen name="subscriptions" options={{ title: 'Subscriptions', ...largeTitle }} />
+              <Stack.Screen name="review" options={{ title: 'Month in review' }} />
+              <Stack.Screen name="rules" options={{ title: 'Rules', ...largeTitle }} />
+              <Stack.Screen name="categories" options={{ title: 'Categories', ...largeTitle }} />
+              <Stack.Screen name="settings" options={{ title: 'Settings', ...largeTitle }} />
+            </Stack>
+          )}
+        </FeedbackProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({ root: { flex: 1 } });

@@ -261,7 +261,7 @@ export function demoData(today: ISODate, baseCurrency: CurrencyCode): AppData {
   addRecurring('rec_energy', 'Brightside Energy', m(-96), 'monthly', dayIn(firstMonth, 10), 'cat_utilities', 35);
   addRecurring('rec_mobile', 'Hello Mobile', m(-29), 'monthly', dayIn(firstMonth, 14), 'cat_utilities');
   addRecurring('rec_internet', 'FibreNet', m(-39.99), 'monthly', dayIn(firstMonth, 5), 'cat_utilities');
-  addRecurring('rec_stream', 'StreamBox', m(-13.99), 'monthly', dayIn(firstMonth, 8), 'cat_subscriptions', 10, 'acc_card');
+  addRecurring('rec_stream', 'StreamBox', m(-13.99), 'monthly', dayIn(firstMonth, 8), 'cat_subscriptions', 20, 'acc_card');
   addRecurring('rec_insurance', 'Shield Insurance', m(-186), 'quarterly', dayIn(firstMonth, 18), 'cat_insurance');
   addRecurring('rec_cloud', 'CloudKeep', m(-119), 'yearly', addMonths(dayIn(thisMonth, 21), 1), 'cat_subscriptions', 10, 'acc_card');
   data.recurrings = recurrings;
@@ -327,7 +327,8 @@ export function demoData(today: ISODate, baseCurrency: CurrencyCode): AppData {
     if (upTo(1)) add('acc_everyday', dayIn(month, 1), m(-1150), 'Harbour Lettings', 'cat_housing');
     if (upTo(3)) add('acc_card', dayIn(month, 3), m(-34.9), 'PulseGym', 'cat_health');
     if (upTo(5)) add('acc_everyday', dayIn(month, 5), m(-39.99), 'FibreNet', 'cat_utilities');
-    if (upTo(8)) add('acc_card', dayIn(month, 8), m(-13.99), 'StreamBox', 'cat_subscriptions');
+    // The price goes up in the latest month, so the demo shows how an increase is pointed out.
+    if (upTo(8)) add('acc_card', dayIn(month, 8), m(offset === 5 ? -15.99 : -13.99), 'StreamBox', 'cat_subscriptions');
     if (upTo(10)) add('acc_everyday', dayIn(month, 10), m(-Math.round(between(78, 118))), 'Brightside Energy', 'cat_utilities');
     if (upTo(14)) add('acc_everyday', dayIn(month, 14), m(-29), 'Hello Mobile', 'cat_utilities');
     if (upTo(17)) add('acc_card', dayIn(month, 17), m(-9.99), 'Tunely', 'cat_subscriptions');

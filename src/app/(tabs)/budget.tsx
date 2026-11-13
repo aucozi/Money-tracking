@@ -185,7 +185,7 @@ export default function Budget() {
           <ListItem
             title="Uncategorized"
             subtitle="Give these a category so the budget is complete"
-            leading={<Glyph icon="❔" />}
+            leading={<Glyph icon="?" />}
             trailing={<Money amount={budget.uncategorizedSpent} currency={base} weight="600" />}
             onPress={() => showTransactions({ ...inMonth, categoryIds: [UNCATEGORIZED] })}
             testID="budget-uncategorized"

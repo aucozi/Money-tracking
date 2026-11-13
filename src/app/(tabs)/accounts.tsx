@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { currencyToBase } from '@/domain/context';
@@ -39,6 +39,9 @@ export default function Accounts() {
   const archived = data.accounts.filter((account) => account.archived);
   const missingRates = [...new Set(open.map((account) => account.currency))].filter((code) => !hasRate(code, base, data.settings.rates));
   const first = view.history[0];
+  // The month a finger is resting on in the chart, if any.
+  const [worthAt, setWorthAt] = useState<number | null>(null);
+  const worthPoint = worthAt === null ? undefined : view.history[worthAt];
   const change = first && view.history.length > 1 ? view.worth.net - first.net : null;
 
   const row = (account: Account) => {
@@ -87,13 +90,14 @@ export default function Accounts() {
         <>
           <Card>
             <T variant="label" tone="muted">
-              Net worth
+              {worthPoint && worthPoint.date !== today ? `Net worth at the end of ${formatMonth(worthPoint.month)}` : 'Net worth'}
             </T>
-            <Money amount={view.worth.net} currency={base} variant="display" testID="accounts-net-worth" />
+            <Money amount={worthPoint ? worthPoint.net : view.worth.net} currency={base} variant="display" testID="accounts-net-worth" />
             <LineChart
               height={110}
               label={`Net worth over time, from ${formatMoney(first?.net ?? 0, base)} in ${first ? formatMonth(first.month) : 'the past'} to ${formatMoney(view.worth.net, base)} today.`}
               series={[{ values: view.history.map((point) => point.net), color: c.accent, fill: true }]}
+              onScrub={setWorthAt}
             />
             <Row>
               <T variant="caption" tone="faint" style={styles.flex}>

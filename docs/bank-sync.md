@@ -58,6 +58,17 @@ public demo. `npm run check:bank-sync` runs the same code against that server fr
 | **Plaid** | US, Canada, UK, parts of Europe | A server to hold Plaid's secret key (it must not ship inside an app), Plaid approving the app for production access, and Plaid's native sign-in screen, which means a custom build rather than Expo Go. This is what Copilot uses. |
 | **Enable Banking** | Europe, UK | Reported to have a free tier for linking your own accounts. Needs an adapter that signs requests with a private key, and each bank's consent expires and has to be renewed, typically every 90 to 180 days. |
 | **GoCardless Bank Account Data** | Europe, UK | Reported closed to new sign-ups, so only usable if you already have keys. |
+
+## What it costs
+
+Figures gathered in November 2026 from public pages and third-party write-ups. Check each provider before relying on
+them: Plaid in particular publishes no price list.
+
+| Service | Cost | Who pays |
+| --- | --- | --- |
+| **SimpleFIN Bridge** (what Waypoint uses) | $1.50 a month or $15 a year, for up to 25 institutions | You, directly to SimpleFIN. Nothing to Waypoint, and no developer account or server. |
+| **Plaid** | Not published. Third-party estimates put it around $0.25 to $0.60 per connected account per month for transactions, with reported contracts in the thousands of dollars a year. | The app's developer, who also has to run a server and pass Plaid's production review. |
+| **Enable Banking** | Reported free for linking your own accounts. | Nobody, for personal use. The cost is the work of building and maintaining the adapter. |
 | **Apple FinanceKit** | Apple Card, Apple Cash, Savings | Real-time and entirely on the phone, but Apple has to grant the app an entitlement, and it needs a native module and a custom build. |
 
 Push notifications the moment a card is charged, as Copilot has, need a server listening for the bank's notifications.

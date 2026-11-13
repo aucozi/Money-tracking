@@ -21,6 +21,9 @@ These are the parts worth keeping, and Waypoint has an equivalent for each.
 | A review inbox for new transactions | "To review" filter with one-tap confirm and "mark all reviewed" |
 | Category budgets with optional rollover | The same, plus per-month and from-now-on edits |
 | Recurring payment detection | Detection from history, offered as suggestions to confirm |
+| A view of subscriptions and what they cost | Subscriptions: monthly and yearly totals, each item's share, and a note when a steady price goes up |
+| Swipe actions on transactions | Swipe right to mark reviewed, left to categorise or delete |
+| A monthly recap | Month in review, for any month, with the comparison to the month before |
 | Net worth across accounts | Net worth with history, assets and debts |
 | Split transactions, tags, notes | All three |
 | Savings goals | Goals that follow an account balance or are topped up by hand |

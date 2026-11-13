@@ -107,7 +107,7 @@ export function TransactionRow({
         ) : isSplit ? (
           <Glyph icon="🧾" />
         ) : (
-          <Glyph icon={category?.icon ?? '❔'} color={category?.color} />
+          <Glyph icon={category?.icon ?? '?'} color={category?.color} />
         )
       }
       trailing={

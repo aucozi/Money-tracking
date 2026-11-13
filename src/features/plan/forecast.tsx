@@ -18,6 +18,8 @@ export function ForecastView() {
   const today = useToday();
   const updateSettings = useStore((state) => state.updateSettings);
   const [days, setDays] = useState<'30' | '60' | '90'>('30');
+  // The day a finger is resting on in the chart, if any.
+  const [at, setAt] = useState<number | null>(null);
   const base = data.settings.baseCurrency;
   const everyday = data.settings.forecastEverydaySpending;
 
@@ -50,6 +52,7 @@ export function ForecastView() {
   }
 
   const lowIndex = forecast.points.findIndex((point) => point.date === forecast.low.date);
+  const picked = at === null ? undefined : forecast.points[at];
   const timeline = forecast.points
     .filter((point) => point.events.length > 0)
     .flatMap((point) => point.events.map((event) => ({ event, balance: point.balance })));
@@ -76,9 +79,15 @@ export function ForecastView() {
           </View>
           <View style={styles.flex}>
             <T variant="caption" tone="faint">
-              In {days} days
+              {picked ? formatDate(picked.date, 'weekday') : `In ${days} days`}
             </T>
-            <Money amount={forecast.end} currency={base} variant="heading" tone={forecast.end < 0 ? 'negative' : 'text'} testID="forecast-end" />
+            <Money
+              amount={picked ? picked.balance : forecast.end}
+              currency={base}
+              variant="heading"
+              tone={(picked ? picked.balance : forecast.end) < 0 ? 'negative' : 'text'}
+              testID="forecast-end"
+            />
           </View>
         </Row>
         <LineChart
@@ -87,6 +96,7 @@ export function ForecastView() {
           label={`Projected cash balance over ${days} days: from ${money(forecast.start)} today to ${money(forecast.end)}, lowest ${money(forecast.low.balance)} on ${formatDate(forecast.low.date, 'long')}.`}
           series={[{ values: forecast.points.map((point) => point.balance), color: forecast.firstNegative ? c.negative : c.accent, fill: true }]}
           marker={{ index: lowIndex, series: 0 }}
+          onScrub={setAt}
         />
         <Row>
           <T variant="caption" tone="faint" style={styles.flex}>

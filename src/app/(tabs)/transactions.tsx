@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { transactionsToCSV } from '@/domain/backup';
@@ -16,6 +16,7 @@ import { Glass } from '@/ui/glass';
 import { Sheet, useConfirm, useToast } from '@/ui/overlays';
 import { AccountField, CategoryField, CategorySheet, DateField } from '@/ui/pickers';
 import { Button, Chip, EmptyState, Field, IconButton, Row, T } from '@/ui/primitives';
+import { closeOpenSwipe, SwipeRow, type SwipeAction } from '@/ui/swipe';
 import { continuous, radius, space, useTheme, WEB_TAB_BAR_SPACE } from '@/ui/theme';
 import { easeNextLayout } from '@/ui/motion';
 
@@ -59,7 +60,11 @@ export default function Transactions() {
   const toast = useToast();
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [categorizing, setCategorizing] = useState(false);
+  // The transactions a category is being chosen for: the selection, or one swiped row.
+  const [categorizing, setCategorizing] = useState<string[] | null>(null);
+  const { width: windowWidth } = useWindowDimensions();
+  const chipScroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const chipSpans = useRef(new Map<string, { x: number; width: number }>());
   const selecting = selected.size > 0;
   const base = data.settings.baseCurrency;
 
@@ -103,8 +108,17 @@ export default function Transactions() {
     }
   };
 
-  const removeSelected = async () => {
-    const count = selected.size;
+  // Keep the chosen quick filter on screen: the row scrolls sideways and the
+  // filter can also be set from elsewhere, e.g. "to review" on Home.
+  useEffect(() => {
+    const span = chipSpans.current.get(quick);
+    if (!span) return;
+    const viewport = Math.min(windowWidth, 560);
+    chipScroll.current?.scrollTo({ x: Math.max(0, span.x - (viewport - span.width) / 2), animated: true });
+  }, [quick, windowWidth]);
+
+  const remove = async (ids: string[]) => {
+    const count = ids.length;
     const ok = await confirm({
       title: `Delete ${count} ${count === 1 ? 'transaction' : 'transactions'}?`,
       message: 'This cannot be undone. Both sides of a transfer are deleted together.',
@@ -112,10 +126,47 @@ export default function Transactions() {
       destructive: true,
     });
     if (!ok) return;
-    deleteTransactions([...selected]);
+    easeNextLayout();
+    deleteTransactions(ids);
     clearSelection();
-    toast(`Deleted ${count}`);
+    toast(count === 1 ? 'Deleted' : `Deleted ${count}`);
   };
+
+  const swipeActions = (tx: Transaction): { right: SwipeAction; trailing: SwipeAction[] } => ({
+    right: tx.reviewed
+      ? {
+          label: 'To review',
+          icon: 'ellipse-outline',
+          color: c.surfaceAlt,
+          onColor: c.text,
+          onPress: () => updateTransactions([tx.id], { reviewed: false }),
+        }
+      : {
+          label: 'Reviewed',
+          icon: 'checkmark-circle',
+          color: c.accent,
+          onColor: c.onAccent,
+          onPress: () => {
+            if (quick === 'review') easeNextLayout();
+            updateTransactions([tx.id], { reviewed: true });
+          },
+        },
+    trailing: [
+      ...(tx.kind === 'transfer' || tx.splits?.length
+        ? []
+        : [
+            {
+              label: 'Category',
+              icon: 'pricetags-outline' as const,
+              color: c.surfaceAlt,
+              onColor: c.text,
+              onPress: () => setCategorizing([tx.id]),
+              testID: `swipe-categorize-${tx.id}`,
+            },
+          ]),
+      { label: 'Delete', icon: 'trash-outline', color: c.negative, onColor: '#FFFFFF', onPress: () => void remove([tx.id]), testID: `swipe-delete-${tx.id}` },
+    ],
+  });
 
   const quickChips: { value: Quick; label: string }[] = [
     { value: 'all', label: 'All' },
@@ -156,7 +207,15 @@ export default function Transactions() {
           />
         </View>
       </Row>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      <ScrollView
+        ref={chipScroll}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        style={styles.chipScroll}
+        contentContainerStyle={styles.chips}
+        testID="quick-filters"
+      >
         <Chip
           label={extraFilters > 0 ? `Filters · ${extraFilters}` : 'Filters'}
           icon="options-outline"
@@ -165,13 +224,9 @@ export default function Transactions() {
           testID="open-filters"
         />
         {quickChips.map((chip) => (
-          <Chip
-            key={chip.value}
-            label={chip.label}
-            selected={quick === chip.value}
-            onPress={() => setFilter(withQuick(filter, chip.value))}
-            testID={`quick-${chip.value}`}
-          />
+          <View key={chip.value} onLayout={(event) => chipSpans.current.set(chip.value, event.nativeEvent.layout)}>
+            <Chip label={chip.label} selected={quick === chip.value} onPress={() => setFilter(withQuick(filter, chip.value))} testID={`quick-${chip.value}`} />
+          </View>
         ))}
       </ScrollView>
       <Row>
@@ -260,29 +315,31 @@ export default function Transactions() {
                 item.last && styles.rowLast,
               ]}
             >
-              <TransactionRow
-                tx={item.tx}
-                lookups={lookups}
-                selecting={selecting}
-                selected={selected.has(item.tx.id)}
-                onPress={() =>
-                  selecting
-                    ? toggle(item.tx.id)
-                    : router.push({
-                        pathname: '/transaction',
-                        params: { id: item.tx.id },
-                      })
-                }
-                onLongPress={() => toggle(item.tx.id)}
-                onReview={
-                  quick === 'review'
-                    ? () => {
-                        easeNextLayout();
-                        updateTransactions([item.tx.id], { reviewed: true });
-                      }
-                    : undefined
-                }
-              />
+              <SwipeRow enabled={!selecting} backgroundColor={c.surface} swipeRight={swipeActions(item.tx).right} trailing={swipeActions(item.tx).trailing}>
+                <TransactionRow
+                  tx={item.tx}
+                  lookups={lookups}
+                  selecting={selecting}
+                  selected={selected.has(item.tx.id)}
+                  onPress={() => {
+                    closeOpenSwipe();
+                    if (selecting) toggle(item.tx.id);
+                    else router.push({ pathname: '/transaction', params: { id: item.tx.id } });
+                  }}
+                  onLongPress={() => {
+                    closeOpenSwipe();
+                    toggle(item.tx.id);
+                  }}
+                  onReview={
+                    quick === 'review'
+                      ? () => {
+                          easeNextLayout();
+                          updateTransactions([item.tx.id], { reviewed: true });
+                        }
+                      : undefined
+                  }
+                />
+              </SwipeRow>
             </View>
           )
         }
@@ -295,7 +352,7 @@ export default function Transactions() {
             <T variant="label" style={styles.flex}>
               {selected.size} selected
             </T>
-            <Button label="Categorize" kind="secondary" small onPress={() => setCategorizing(true)} testID="bulk-categorize" />
+            <Button label="Categorize" kind="secondary" small onPress={() => setCategorizing([...selected])} testID="bulk-categorize" />
             <Button
               label="Reviewed"
               kind="secondary"
@@ -306,7 +363,7 @@ export default function Transactions() {
               }}
               testID="bulk-review"
             />
-            <IconButton icon="trash-outline" label="Delete selected" tone="negative" onPress={removeSelected} testID="bulk-delete" />
+            <IconButton icon="trash-outline" label="Delete selected" tone="negative" onPress={() => void remove([...selected])} testID="bulk-delete" />
           </Glass>
         </FloatingDock>
       ) : (
@@ -314,12 +371,12 @@ export default function Transactions() {
       )}
 
       <CategorySheet
-        visible={categorizing}
-        title={`Categorize ${selected.size}`}
-        onClose={() => setCategorizing(false)}
+        visible={categorizing !== null}
+        title={categorizing && categorizing.length > 1 ? `Categorize ${categorizing.length}` : 'Category'}
+        onClose={() => setCategorizing(null)}
         onPick={(id) => {
-          updateTransactions([...selected], { categoryId: id, reviewed: true });
-          setCategorizing(false);
+          if (categorizing) updateTransactions(categorizing, { categoryId: id, reviewed: true });
+          setCategorizing(null);
           clearSelection();
           toast('Categorized');
         }}
@@ -394,7 +451,9 @@ const styles = StyleSheet.create({
     gap: space.md,
     paddingBottom: space.sm,
   },
-  chips: { gap: space.sm, paddingRight: space.lg },
+  // The row runs to both screen edges, so chips slide out of view instead of being cut off at the margin.
+  chipScroll: { marginHorizontal: -space.lg },
+  chips: { gap: space.sm, paddingHorizontal: space.lg },
   day: {
     paddingHorizontal: space.lg,
     paddingTop: space.lg,

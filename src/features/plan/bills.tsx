@@ -79,6 +79,7 @@ export function Bills() {
           <T variant="caption" tone="faint">
             Yearly and quarterly items are spread across the months they cover, so this is what to set aside each month.
           </T>
+          <Button label="See what each one costs" kind="secondary" small onPress={() => router.push('/subscriptions')} testID="open-subscriptions" />
         </Card>
       ) : null}
 
